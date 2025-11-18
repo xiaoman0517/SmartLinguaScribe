@@ -1,159 +1,71 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="htmlTitle">多语言智能单词识记和听写助手</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>多语言听写测验独立应用</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Font Awesome 图标 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- 引入 XLSX 库用于文件导出 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* CSS 样式保持不变 */
-        .card {
-            max-width: 800px;
-            margin: 20px auto;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        /* 自定义 Tailwind 配置 */
+        :root {
+            --primary: #007bff;
+            --primary-dark: #0056b3;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
         }
-        .word-display {
-            font-size: 2.5rem;
-            text-align: center;
-            margin: 20px 0;
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
         }
-        .phonetic {
-            font-size: 1.5rem;
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
+        .container-quiz {
+            max-width: 700px;
         }
-        .definition {
-            font-size: 1.2rem;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            transition: opacity 0.3s ease;
-            margin-bottom: 0; /* 释义本身不需要额外的底部外边距，间距由例句的 margin-top 控制 */
+        .card-quiz {
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
-        /* Styles for the entire example sentence block container */
-        .example-sentence { /* This class will only handle container-level styles */
-            padding: 15px;
-            background-color: #f0f8ff;
-            border-radius: 5px;
-            margin-top: 10px;
-            border-left: 4px solid #4682b4;
-            transition: opacity 0.3s ease;
+        .header-quiz {
+            background: var(--primary);
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
         }
-        /* Styles specifically for the example sentence text (the fourth column content) */
-        #exampleSentence {
-            font-size: 1.1rem; /* Revert to 1.1rem */
-            color: #34495e; /* Deep blue from "再之前" */
-            font-style: italic; /* Italic from "再之前" */
-            line-height: 1.5; /* Default line height for better spacing */
-            margin-bottom: 5px; /* Small space below it */
+        .btn-primary-custom {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            transition: all 0.2s;
         }
-        /* Styles specifically for the example translation text (the fifth column content) */
-        #exampleTranslation {
-            font-size: 1rem; /* Smaller than exampleSentence */
-            color: #212529; /* Standard dark text color, from "现在例句的" */
-            font-style: normal; /* No italic, from "现在例句的" */
-            line-height: 1.3; /* Adopt the previous exampleSentence line height */
-            margin-top: 8px; /* Space from the example sentence above */
-            padding-left: 0; /* Remove padding-left */
-            border-left: none; /* Remove border-left */
-            font-weight: normal; /* Remove lighter weight */
+        .btn-primary-custom:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
         }
-        /* 修复点: 调整 .card-footer 样式以容纳固定按钮 */
-        .card-footer {
-            background-color: #f8f9fa;
-            border-top: 1px solid rgba(0,0,0,.125);
-            padding: 15px;
-            display: flex; /* 使用 Flexbox 布局 */
-            flex-direction: column; /* 垂直堆叠内容 */
-            align-items: center; /* 水平居中 */
-            gap: 15px; /* 元素间距 */
+        .details-panel {
+            background-color: #fffbeb; /* Light yellow background */
+            border-left: 4px solid var(--warning);
+            border-radius: 0.75rem;
         }
-        .controls {
-            /* controls 不再需要 margin-top 或 text-align: center，因为父级已处理 */
-            width: 100%; /* 让控制区占据 footer 的全部宽度 */
-            max-width: 600px; /* 限制宽度，使其不至于太宽 */
-        }
-        .progress-container {
-            margin-top: 20px;
-        }
-        #fileInput {
-            display: none;
-        }
-        .creator-info {
-            text-align: center;
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        /* Adjusted the version-badge for better positioning */
-        .creator-name-container {
-            font-weight: bold;
-            color: #2e317c;
-            display: inline-flex; /* Use flexbox to align name and badge */
-            align-items: center; /* Vertically center them */
-        }
-        .contact-email {
-            color: #2f2f35;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        .contact-email:hover {
-            color: #bb2d3b;
-            text-decoration: underline;
-        }
-        .version-badge {
-            background-color: red; /* Changed to red */
+        .loading-spinner {
             color: white;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            margin-left: 5px; /* Added margin for spacing */
-            /* vertical-align: middle; No longer needed with flexbox */
         }
-        .features-box {
-            text-align: center;
-            margin: 25px 0 15px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
+        .voice-setting-box {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
         }
-        .features-box h5 {
-            font-size: 0.95rem;
-            color: #495057;
-            margin-bottom: 10px;
+        .mode-btn.active {
+            background-color: #007bff !important;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
         }
-        .features-box ul {
-            padding-left: 20px;
-            text-align: left;
-            font-size: 0.85rem;
-            margin-bottom: 0;
-        }
-        .features-box li {
-            margin-bottom: 5px;
-            color: #6c757d;
-        }
-        .interval-control {
-            margin-bottom: 10px;
-            text-align: center; /* 居中显示播放间隔控制器 */
-        }
-        .custom-request {
-            font-size: 0.8rem;
-            color: #888;
-            margin-top: 5px;
-            /* font-style: italic; Removed italics */
-        }
-        .example-play-btn {
-            margin-left: 8px;
-            font-size: 0.8rem;
-            padding: 2px 6px;
-        }
-        .btn-group-controls {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-bottom: 10px;
+        .mode-btn:not(.active) {
+            background-color: #6c757d !important;
         }
         .hidden-content {
             opacity: 0;
@@ -165,427 +77,429 @@
         .visible-content {
             opacity: 1;
             height: auto;
-            overflow: visible; /* Ensure content is visible */
-            /* 移除 margin: initial; 和 padding: initial; 让元素的原始 margin/padding 生效 */
+            overflow: visible;
         }
-        .auto-play-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-bottom: 10px;
+        .word-display {
+            font-size: 2.5rem;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
         }
-        .tts-settings {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #dee2e6;
-        }
-        .tts-option {
-            margin-bottom: 10px;
-        }
-        .api-key-input {
-            margin-top: 5px;
-        }
-        .voice-selection {
-            margin-top: 10px;
-        }
-        .loading-spinner {
-            display: none;
-            color: #007bff;
-            margin-left: 10px;
-        }
-        .voice-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .voice-option {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .voice-option:hover {
-            background-color: #f0f8ff;
-            border-color: #007bff;
-        }
-        .voice-option.selected {
-            background-color: #007bff;
-            color: white;
-            border-color: #0056b3;
-        }
-        .voice-gender {
-            font-size: 0.8em;
+        .phonetic-display {
+            font-size: 1.5rem;
+            text-align: center;
             color: #666;
+            margin-bottom: 20px;
         }
-        .voice-engine {
-            font-size: 0.7em;
-            color: #888;
+        .definition-display {
+            font-size: 1.2rem;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
         }
-        /* 自动播放按钮在激活状态下的样式 */
-        .btn-warning.active-autoplay {
-            background-color: #dc3545; /* 红色表示停止 */
-            border-color: #dc3545;
-            color: white;
+        .example-sentence-display {
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #4682b4;
         }
-        .btn-warning.active-autoplay:hover {
-            background-color: #c82333;
-            border-color: #bd2130;
+        /* 确保输入框和选择框在移动端友好 */
+        select, input[type="text"] {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='currentColor'%3e%3cpath d='M7 7l3 3 3-3m0 6l-3-3-3 3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
         }
-        .download-info-text {
-            font-size: 0.85rem;
-            color: #6c757d;
-            margin-left: 10px;
-            display: inline-block;
+        /* 响应式按钮大小 */
+        .responsive-btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+        }
+        @media (max-width: 640px) {
+            .responsive-btn {
+                padding: 0.5rem 1rem;
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
-<body>
-    <div class="container mt-5">
-        <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h3 class="text-center flex-grow-1" id="appTitle"><i class="fas fa-language"></i>多语言智能单词识记和听写助手</h3>
-                <!-- UI Language Selector -->
-                <select id="uiLanguageSelect" class="form-select w-auto ms-auto" style="min-width: 120px;">
-                    <option value="zh-CN">中文</option>
-                    <option value="en-US">English</option>
-                </select>
+<body class="p-4 flex items-center justify-center">
+    <div class="container-quiz w-full mx-auto mt-4 md:mt-10">
+        <div class="card-quiz bg-white">
+            <!-- 头部 -->
+            <div class="header-quiz p-6 text-white text-center">
+                <h1 class="text-2xl md:text-3xl font-bold mb-1">
+                    <i class="fas fa-headphones-alt mr-2"></i> 多语言单词学习与测验
+                </h1>
+                <p class="text-sm opacity-90">Multilingual Word Learning & Quiz</p>
             </div>
-            <div class="card-body">
-                <div class="tts-settings">
-                    <h5 id="ttsSettingsTitle"><i class="fas fa-cog"></i> 语音合成设置</h5>
-                    <!-- Only Amazon Polly TTS option remains -->
-                    <div class="tts-option">
-                        <label class="form-check-label">
-                            <input type="radio" name="ttsOption" value="amazon" checked class="form-check-input">
-                            <span id="amazonTtsLabel">Amazon Polly（AI语音，已配置后端）</span>
-                        </label>
-                        <div class="amazon-config">
-                            <div class="voice-selection">
-                                <label id="selectVoiceLabel">选择音色：</label>
-                                <select class="form-control" id="voiceSelect">
-                                    <option value="">请先加载音色...</option>
+
+            <div class="p-6">
+                <!-- 语音合成设置 - 展开式 -->
+                <div class="mb-6 voice-setting-box p-4">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+                        <i class="fas fa-cogs mr-2"></i> 语音设置 (Amazon Polly)
+                    </h2>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                        <div class="w-full sm:w-1/2">
+                            <label for="languageSelect" class="block text-sm font-medium text-gray-700">选择语言:</label>
+                            <select id="languageSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2.5 disabled:bg-gray-100">
+                                <!-- 语言选项 -->
+                            </select>
+                        </div>
+                        <div class="w-full sm:w-1/2">
+                            <label for="voiceSelect" class="block text-sm font-medium text-gray-700">选择音色:</label>
+                            <div class="flex items-center mt-1">
+                                <select id="voiceSelect" class="block w-full rounded-l-md border-gray-300 shadow-sm p-2.5 disabled:bg-gray-100">
+                                    <option value="">加载中...</option>
                                 </select>
-                                <span class="loading-spinner" id="awsLoading" style="margin-left: 10px;">
-                                    <i class="fas fa-spinner fa-spin"></i>
+                                <span class="bg-gray-200 p-2.5 rounded-r-md" id="awsLoading">
+                                    <i class="fas fa-spinner fa-spin text-gray-600"></i>
                                 </span>
-                                <div class="form-check mt-2">
-                                    <input type="checkbox" class="form-check-input" id="useNeuralEngine" checked>
-                                    <label class="form-check-label" id="useNeuralEngineLabel">使用神经引擎（更自然）</label>
-                                </div>
                             </div>
-                            <!-- Removed loadAwsVoicesBtn -->
                         </div>
                     </div>
                 </div>
 
-                <div class="text-center mb-3">
-                    <!-- This selector now exclusively for Polly spoken languages -->
-                    <select id="languageSelect" class="form-select" style="width: auto; display: inline-block;">
-                        <!-- Options will be dynamically loaded here by populatePollyLanguageSelector -->
-                    </select>
-                    <!-- Removed pollyLangInfoText based on the revert request -->
+                <!-- 文件加载和统计区域 -->
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-3 gap-3">
+                    <button id="loadFileBtn" class="responsive-btn w-full sm:w-auto btn-primary-custom text-white font-semibold py-2 px-4 rounded-full shadow-lg hover:shadow-xl transition duration-200">
+                        <i class="fas fa-upload mr-2"></i> <span id="loadFileBtnText">加载 Excel 单词表</span>
+                    </button>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden">
+                    
+                    <div id="quizStats" class="text-center sm:text-right text-gray-700 w-full sm:w-auto">
+                        <span class="bg-blue-100 text-blue-800 text-sm font-medium me-2 px-2.5 py-1 rounded-full">总计: 0</span>
+                        <span class="bg-yellow-100 text-yellow-800 text-sm font-medium me-2 px-2.5 py-1 rounded-full">剩余: 0</span>
+                        <span class="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-1 rounded-full">未掌握: 0</span>
+                    </div>
                 </div>
 
-                <div class="text-center mb-4">
-                    <button class="btn btn-primary me-2" id="loadFileBtn">
-                        <i class="fas fa-file-excel"></i> <span id="loadFileBtnText">加载Excel单词表</span>
+                <!-- 模式选择器 -->
+                <div class="mt-4 flex justify-center gap-4 mb-6">
+                    <button id="modeStudyBtn" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-all mode-btn active shadow-lg">
+                        <i class="fas fa-book mr-2"></i> 学习模式
                     </button>
-                    <button class="btn btn-outline-primary" id="downloadFileBtn">
-                        <i class="fas fa-download"></i> <span id="downloadFileBtnText">下载单词表</span>
+                    <button id="modeQuizBtn" class="px-6 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-semibold transition-all mode-btn shadow-lg">
+                        <i class="fas fa-clipboard-check mr-2"></i> 测试模式
                     </button>
-                    <span class="loading-spinner d-none" id="fileLoading"><i class="fas fa-spinner fa-spin"></i></span>
-                    <span id="downloadInfoText" class="download-info-text">（未加载文件时下载示例单词表）</span>
-                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
-                    <!-- New reminder text -->
-                    <p id="excelReminderText" class="text-muted mt-2" style="font-size: 0.9rem;"></p>
                 </div>
-                
-                <div id="wordDisplayArea" style="display: none;">
-                    <div class="word-display" id="currentWord"></div>
-                    <div class="phonetic" id="currentPhonetic"></div>
-                    
-                    <div class="definition hidden-content" id="currentDefinition"></div>
-                    <div class="example-sentence hidden-content" id="exampleSentenceArea">
-                        <h6 id="exampleSentenceTitle"><i class="fas fa-comment-dots"></i> 例句:</h6>
-                        <div id="exampleSentence"></div>
-                        <div id="exampleTranslation"></div>
-                        <button class="btn btn-sm btn-outline-primary example-play-btn" id="playExampleBtn">
-                            <i class="fas fa-volume-up"></i> <span id="readExampleBtnText">朗读例句</span>
-                        </button>
+
+                <!-- 学习模式内容区 -->
+                <div id="studyModeContent" class="text-center p-4 hidden">
+                    <div id="studyInitialPrompt" class="mb-8">
+                        <h3 class="text-xl font-medium text-gray-500 mb-2">请先加载一个单词表文件开始学习。</h3>
+                        <p class="text-sm text-gray-400">Excel 文件应包含单词、音标、释义、例句和例句翻译等列。</p>
                     </div>
                     
-                    <div class="progress-container">
-                        <div class="progress">
-                            <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                    <div id="studyWordDisplayArea" style="display: none;">
+                        <div class="word-display" id="studyCurrentWord"></div>
+                        <div class="phonetic-display" id="studyCurrentPhonetic"></div>
+                        
+                        <div class="definition-display hidden-content" id="studyCurrentDefinition"></div>
+                        <div class="example-sentence-display hidden-content" id="studyExampleSentenceArea">
+                            <h6 class="text-lg font-semibold mb-2"><i class="fas fa-comment-dots"></i> 例句:</h6>
+                            <div id="studyExampleSentence" class="text-lg italic text-blue-800 mb-2"></div>
+                            <div id="studyExampleTranslation" class="text-base text-gray-700"></div>
+                            <button class="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg" id="studyPlayExampleBtn">
+                                <i class="fas fa-volume-up mr-2"></i> 朗读例句
+                            </button>
                         </div>
-                        <div class="text-center mt-2" id="progressText">0/0</div>
+                        
+                        <div class="mt-6">
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-blue-600 h-2.5 rounded-full" id="studyProgressBar" style="width: 0%"></div>
+                            </div>
+                            <div class="text-center mt-2 text-gray-600" id="studyProgressText">0/0</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="controls">
-                    <div class="btn-group-controls">
-                        <button class="btn btn-secondary" id="prevBtn">
-                            <i class="fas fa-step-backward"></i> <span id="prevBtnText">上一个</span>
+                    
+                    <!-- 学习模式控制按钮 -->
+                    <div class="mt-6 flex justify-center gap-4" id="studyControls">
+                        <button class="responsive-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg disabled:opacity-50" id="studyPrevBtn" disabled>
+                            <i class="fas fa-step-backward mr-2"></i> 上一个
                         </button>
-                        <button class="btn btn-success" id="playBtn">
-                            <i class="fas fa-play"></i> <span id="playBtnText">播放</span>
+                        <button class="responsive-btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg disabled:opacity-50" id="studyPlayBtn" disabled>
+                            <i class="fas fa-play mr-2"></i> 播放
                         </button>
-                        <button class="btn btn-info" id="nextBtn">
-                            <i class="fas fa-step-forward"></i> <span id="nextBtnText">下一个</span>
+                        <button class="responsive-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg disabled:opacity-50" id="studyNextBtn" disabled>
+                            <i class="fas fa-step-forward mr-2"></i> 下一个
                         </button>
                     </div>
                     
-                    <div class="auto-play-buttons">
-                        <button class="btn btn-warning" id="autoPlayBtn">
-                            <i class="fas fa-sync-alt"></i> <span id="autoPlayBtnText">自动播放</span>
+                    <!-- 自动播放控制 -->
+                    <div class="mt-4 flex justify-center gap-4" id="studyAutoPlayControls">
+                        <button class="responsive-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg disabled:opacity-50" id="studyAutoPlayBtn" disabled>
+                            <i class="fas fa-sync-alt mr-2"></i> 自动播放
                         </button>
-                        <button class="btn btn-warning" id="autoPlayWithExampleBtn">
-                            <i class="fas fa-sync"></i> <span id="autoPlayWithExampleBtnText">自动播放（带例句）</span>
+                        <button class="responsive-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg disabled:opacity-50" id="studyAutoPlayWithExampleBtn" disabled>
+                            <i class="fas fa-sync mr-2"></i> 自动播放（带例句）
                         </button>
                     </div>
                     
-                    <div class="form-group interval-control mt-3">
-                        <label for="intervalInput" id="intervalLabel">
-                            <i class="fas fa-clock"></i> <span id="intervalLabelText">播放间隔(秒):</span>
+                    <!-- 播放间隔设置 -->
+                    <div class="mt-4 text-center">
+                        <label class="text-gray-700">
+                            <i class="fas fa-clock mr-2"></i> 播放间隔(秒):
+                            <input type="number" id="studyIntervalInput" class="ml-2 w-20 px-2 py-1 border rounded" value="2" min="1" max="10">
                         </label>
-                        <input type="number" id="intervalInput" class="form-control" value="2" min="1" max="10" style="width: 80px; display: inline-block;">
                     </div>
                 </div>
-                <div class="creator-info">
-                    <p id="creatorInfoP"><i class="fas fa-user-edit"></i> <span id="creatorLabel">创建者：</span><span class="creator-name-container"><span id="creatorNameContent">小满(自律版）</span><span class="version-badge">rednote</span></span></p>
-                    <p id="contactInfoP"><i class="fas fa-envelope"></i> <span id="contactLabel">联系方式：</span><a href="mailto:xiaoman0517@yeah.net" class="contact-email">xiaoman0517@yeah.net</a></p>
-                    <p id="customRequestText" class="custom-request"></p>
+
+                <!-- 测验提示区 -->
+                <div id="quizModeContent" class="text-center p-4">
+                    
+                    <div id="initialPrompt" class="mb-8">
+                        <h3 class="text-xl font-medium text-gray-500 mb-2">请先加载一个单词表文件开始测验。</h3>
+                        <p class="text-sm text-gray-400">Excel 文件应包含 'word', 'phonetic', 'definition', 'example', 'exampleTranslation' 等列。</p>
+                    </div>
+
+                    <h3 id="quizPrompt" class="text-2xl font-semibold text-gray-800 mb-6 hidden">你认识这个单词吗？</h3>
+                    
+                    <!-- 播放按钮 -->
+                    <button class="responsive-btn w-full sm:w-3/4 lg:w-1/2 mx-auto mb-6 text-white font-bold py-3 px-6 rounded-full shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300 btn-primary-custom disabled:opacity-50" 
+                            id="quizPlayButton" disabled>
+                        <i class="fas fa-play mr-2"></i> 播放发音
+                    </button>
+
+                    <!-- 新增播放例句按钮 -->
+                    <button class="responsive-btn w-full sm:w-3/4 lg:w-1/2 mx-auto mb-6 text-white font-bold py-3 px-6 rounded-full shadow-xl focus:outline-none focus:ring-4 focus:ring-green-300 bg-green-500 hover:bg-green-600 disabled:opacity-50" 
+                            id="quizPlayExampleButton" disabled>
+                        <i class="fas fa-play mr-2"></i> 播放例句
+                    </button>
+
+                    <!-- 认识/不认识 控制 -->
+                    <div id="quizControls" class="flex gap-4 mb-6 hidden">
+                        <button class="responsive-btn flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-green-300 transition duration-200 disabled:opacity-50" 
+                                id="quizKnowBtn">
+                            <i class="fas fa-check mr-2"></i> 我认识
+                        </button>
+                        <button class="responsive-btn flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-red-300 transition duration-200 disabled:opacity-50" 
+                                id="quizUnknownBtn">
+                            <i class="fas fa-times mr-2"></i> 我不认识
+                        </button>
+                    </div>
+
+                    <!-- 单词详情面板 -->
+                    <div id="quizDetailsPanel" class="details-panel p-4 mt-6 text-left hidden">
+                        <h4 class="text-xl font-bold mb-3 text-gray-800" id="quizDetailsTitle">单词详情</h4>
+                        <div id="quizDetailsContent" class="text-gray-700 space-y-2 text-sm">
+                            <!-- 详情内容在此处填充 -->
+                        </div>
+                        <button class="responsive-btn w-full mt-4 btn-primary-custom text-white font-bold py-2.5 rounded-full focus:ring-2 focus:ring-blue-300" 
+                                id="quizNextWordBtn">
+                            <i class="fas fa-arrow-right mr-2"></i> 下一个单词
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            <!-- 底部操作栏 -->
+            <div class="p-6 pt-0 border-t border-gray-200">
+                <button id="quizExportBtn" class="responsive-btn w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2.5 px-4 rounded-full transition duration-200 disabled:opacity-50">
+                    <i class="fas fa-download mr-2"></i> 导出未掌握的单词
+                </button>
+            </div>
+
+            <!-- 隐藏的 Audio 播放器 -->
+            <audio id="audioPlayer"></audio>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
     <script>
-        // 将此 URL 替换为你的 API Gateway URL
-        const API_GATEWAY_URL = 'https://7c5n6j1469.execute-api.us-east-1.amazonaws.com/dev';
-        const LAMBDA_VOICES_URL = `${API_GATEWAY_URL}/voices`; // 用于获取音色列表的端点
-        const LAMBDA_SYNTHESIZE_URL = `${API_GATEWAY_URL}/synthesize`; // 用于语音合成的端点
-
-        let wordsData = [];
-        let currentIndex = 0;
-        let autoPlayTimeoutId = null; // 用于存储自动播放的 setTimeout ID
-        let currentAutoPlayMode = 'none'; // 'none', 'wordOnly', 'wordWithExample'
-        let allPollyVoices = []; // 全局变量，存储所有 Polly 音色
-        const speechSynthesis = window.speechSynthesis; 
+        // --- 核心数据：应用数据和备份音色 ---
         
-        // 全局变量用于当前UI语言
-        let currentUILanguage = 'zh-CN'; // 默认语言
-
-        // 获取 DOM 元素 (大部分全局元素)
-        const htmlTitle = document.getElementById('htmlTitle');
-        const loadFileBtn = document.getElementById('loadFileBtn');
-        const fileInput = document.getElementById('fileInput');
-        const wordDisplayArea = document.getElementById('wordDisplayArea');
-        const currentWordElement = document.getElementById('currentWord');
-        const currentPhoneticElement = document.getElementById('currentPhonetic');
-        const currentDefinitionElement = document.getElementById('currentDefinition');
-        const exampleSentenceArea = document.getElementById('exampleSentenceArea');
-        const exampleSentenceElement = document.getElementById('exampleSentence');
-        const exampleTranslationElement = document.getElementById('exampleTranslation');
-        const playExampleBtn = document.getElementById('playExampleBtn');
-        const prevBtn = document.getElementById('prevBtn');
-        const playBtn = document.getElementById('playBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const autoPlayBtn = document.getElementById('autoPlayBtn');
-        const autoPlayWithExampleBtn = document.getElementById('autoPlayWithExampleBtn');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
-        const intervalInput = document.getElementById('intervalInput');
-        const languageSelect = document.getElementById('languageSelect'); // Polly spoken language selector
-        const amazonConfigDiv = document.querySelector('.amazon-config'); // This div now contains all relevant Amazon config
-        const voiceSelect = document.getElementById('voiceSelect');
-        const useNeuralEngineCheckbox = document.getElementById('useNeuralEngine');
-        const uiLanguageSelect = document.getElementById('uiLanguageSelect');
-        const selectVoiceLabel = document.getElementById('selectVoiceLabel');
-        const excelReminderText = document.getElementById('excelReminderText');
-        const downloadFileBtn = document.getElementById('downloadFileBtn');
-        const downloadInfoText = document.getElementById('downloadInfoText');
-        const awsLoading = document.getElementById('awsLoading');
-
-        // Spinner for file operations
-        const fileLoading = document.getElementById('fileLoading'); 
-
-        // Example word data for download when no file is loaded
-        const exampleWordsData = [
-            { word: 'Hello', phonetic: '/həˈloʊ/', definition: '用于见面或问候某人时的招呼语', example: 'Hello, how are you today?', exampleTranslation: '你好，你今天怎么样？' },
-            { word: 'World', phonetic: '/wɜːrld/', definition: '地球，连同其所有国家和民族', example: 'The world is a beautiful place.', exampleTranslation: '世界是一个美丽的地方。' },
-            { word: 'Learn', phonetic: '/lɜːrn/', definition: '通过学习、实践、被教导或经历某事来获取知识或技能', example: 'I want to learn a new language.', exampleTranslation: '我想学习一门新语言。' },
-            { word: 'Science', phonetic: '/ˈsaɪəns/', definition: '通过观察和实验，系统研究物理和自然世界结构和行为的智力及实践活动', example: 'Science helps us understand the universe.', exampleTranslation: '科学帮助我们理解宇宙。' },
-            { word: 'Computer', phonetic: '/kəmˈpjuːtər/', definition: '一种用于根据可变程序中的指令，通常以二进制形式存储和处理数据的电子设备', example: 'My computer is very fast.', exampleTranslation: '我的电脑速度很快。' },
-            { word: 'Knowledge', phonetic: '/ˈɒlɪdʒ/', definition: '一个人通过经验或教育获得的知识、信息和技能；对某个主题的理论或实践理解', example: 'Knowledge is power.', exampleTranslation: '知识就是力量。' },
-            { word: 'Success', phonetic: '/səkˈses/', definition: '实现目标或目的', example: 'Hard work is the key to success.', exampleTranslation: '努力工作是成功的关键。' },
-            { word: 'Challenge', phonetic: '/ˈtʃælɪndʒ/', definition: '呼吁某人参与竞争性情境或努力做某事', example: 'Facing new challenges helps us grow.', exampleTranslation: '面对新的挑战有助于我们成长。' }, 
-            { word: 'Explore', phonetic: '/ɪkˈsplɔːr/', definition: '旅行或穿过（不熟悉的国家或地区）以了解或熟悉它', example: 'Let\'s explore new possibilities.', exampleTranslation: '让我们探索新的可能性。' },
-            { word: 'Improve', phonetic: '/ɪmˈprūv/', definition: '使或变得更好', example: 'We always strive to improve our skills.', exampleTranslation: '我们总是在努力提升我们的技能。' },
-        ];
-
-
-        // 语言代码到友好名称的映射 (主要用于 Polly spoken languages 的显示)
-        const pollyLanguageDisplayNames = {
-            'af-ZA': 'Afrikaans (South Africa)',
-            'ar-AE': 'Arabic (United Arab Emirates)',
-            'ar-SA': 'Arabic (Saudi Arabia)',
-            'ca-ES': 'Catalan (Spain)',
-            'cmn-CN': 'Chinese, Mandarin (Mainland)',
-            'cy-GB': 'Welsh (United Kingdom)',
-            'da-DK': 'Danish (Denmark)',
-            'de-DE': 'German (Germany)',
-            'en-AU': 'English (Australia)',
-            'en-GB': 'English (United Kingdom)',
-            'en-IN': 'English (India)',
-            'en-IE': 'English (Ireland)',
-            'en-NZ': 'English (New Zealand)',
-            'en-US': 'English (United States)',
-            'en-ZA': 'English (South Africa)',
-            'es-ES': 'Spanish (Spain)',
-            'es-MX': 'Spanish (Mexico)',
-            'es-US': 'Spanish (United States)',
-            'fi-FI': 'Finnish (Finland)',
-            'fr-CA': 'French (Canada)',
-            'fr-FR': 'French (France)',
-            'hi-IN': 'Hindi (India)',
-            'is-IS': 'Icelandic (Iceland)',
-            'it-IT': 'Italian (Italy)',
-            'ja-JP': 'Japanese (Japan)',
-            'ko-KR': 'Korean (South Korea)',
-            'nb-NO': 'Norwegian (Bokmål) (Norway)',
-            'nl-NL': 'Dutch (Netherlands)',
-            'pl-PL': 'Polish (Poland)',
-            'pt-BR': 'Portuguese (Brazil)',
-            'pt-PT': 'Portuguese (Portugal)',
-            'ro-RO': 'Romanian (Romania)',
-            'ru-RU': 'Russian (Russia)',
-            'sv-SE': 'Swedish (Sweden)',
-            'tr-TR': 'Turkish (Turkey)',
-            'yue-CN': 'Chinese, Cantonese (Hong Kong)',
-            // Adding zh-CN for display consistency, even if Polly uses cmn-CN
-            'zh-CN': 'Chinese, Mandarin (Mainland)', 
-        };
-
-        // UI 文本翻译字典
-        const uiTranslations = {
-            'zh-CN': {
-                htmlTitle: '多语言智能单词识记和听写助手',
-                appTitle: '多语言智能单词识记和听写助手',
-                ttsSettingsTitle: '语音合成设置',
-                amazonTtsLabel: 'Amazon Polly（AI语音，已配置后端）',
-                selectVoiceLabel: '选择音色：',
-                useNeuralEngineLabel: '使用神经引擎（更自然）',
-                loadFileBtnText: '加载Excel单词表',
-                downloadFileBtnText: '下载单词表',
-                downloadInfoText: '（未加载文件时下载示例单词表）',
-                excelReminder: '请确保表格按照单词、音标、释义、例句和例句翻译这五列的顺序进行组织。',
-                exampleSentenceTitle: '例句:',
-                readExampleBtnText: '朗读例句',
-                prevBtnText: '上一个',
-                playBtnText: '播放',
-                nextBtnText: '下一个',
-                autoPlayBtnText: '自动播放',
-                autoPlayWithExampleBtnText: '自动播放（带例句）',
-                intervalLabelText: '播放间隔(秒):',
-                creatorLabel: '创建者：',
-                creatorNameContent: '小满(自律版）',
-                contactLabel: '联系方式：',
-                customRequestText: 'Amazon Polly AI语音生成的免费额度有限，接受捐赠用于维护此网页长期正常运行，好心人可私信或来邮申请加本人微信或提供收款码，如有定制需求也欢迎私信或来邮,非常感谢！ ❤️',
-                pollyLangInfo: '', 
-                autoPlayWordOnlyActive: '<i class="fas fa-pause"></i> 正在自动播放单词',
-                autoPlayWordAndExampleActive: '<i class="fas fa-pause"></i> 正在自动播放单词和例句',
-                msgNoVoiceSelected: '请先加载并选择一个 Amazon Polly 音色。',
-                msgLoadVoicesFailed: '加载音色失败: {error}。请检查控制台获取更多详情。',
-                msgApiError: '语音合成失败: {error}。', 
-                msgExcelReadFailed: '读取Excel文件失败，请确保文件格式正确。',
-                msgNoWorksheet: 'Excel文件中没有找到工作表。',
-                msgNoDataInSheet: 'Excel文件中没有找到数据！',
-                msgExcelConvertFailed: '将Excel工作表转换为数据失败，请检查数据结构。',
-                msgFileReaderError: '文件读取失败，请重试或检查文件权限。',
-                msgPleaseLoadExcel: '请先加载Excel单词表！',
-                msgBackendNoAudio: '后端响应中未找到 Base64 音频数据。',
-                msgApiVoiceListFailed: '无法从 API 获取所有音色列表。状态码: {status}。错误信息: {error}。',
-                msgApiVoiceListFormatError: '后端返回的数据格式不正确，缺少音色列表。',
-                msgApiVoiceListParseError: '无法解析后端 JSON 响应。错误: {error}。',
-                msgLoadingLanguages: '加载语言...',
-                msgLoadingVoices: '加载音色...',
-                msgSelectLanguage: '选择语言',
-                msgLoadFailed: '加载失败',
-                msgSelectVoice: '选择音色...',
-                msgNoVoicesForLang: '未找到适合当前语言的音色',
-                msgNoDataToDownload: '没有可下载的单词数据。请先加载一个单词表。',
-                msgNoDownloadSupport: '您的浏览器不支持文件下载。请尝试使用最新版浏览器。',
-                msgMobilePlaybackBlocked: '您的浏览器可能阻止了自动播放音频。请尝试手动播放或点击屏幕以允许播放。',
+        // 应用程序的翻译和示例数据
+        const ALL_APP_DATA = {
+            "uiTranslations": {
+                "zh-CN": {
+                    "loadFileBtnText": "加载 Excel 单词表",
+                    "msgNoVoiceSelected": "请选择一个音色！",
+                    "msgBackendNoAudio": "后端未返回音频数据。",
+                    "msgApiError": "语音合成 API 错误: {error}",
+                    "msgLoadVoicesFailed": "加载音色失败: {error}",
+                    "msgApiVoiceListFailed": "无法从 API 获取音色列表，状态: {status}，错误: {error}",
+                    "msgApiVoiceListFormatError": "后端返回的数据格式不正确，缺少音色列表。",
+                    "msgApiVoiceListFailedFallback": "无法加载音色列表（API连接失败）。已使用本地备用音色，语音合成功能可能受限。",
+                    "msgNoWorksheet": "Excel文件中找不到工作表。",
+                    "msgNoDataInSheet": "工作表中没有有效的数据行。",
+                    "msgExcelReadFailed": "Excel 文件读取失败，请检查文件格式。",
+                    "msgFileReaderError": "文件读取器错误。",
+                    "msgLoadingLanguages": "加载语言...",
+                    "msgLoadingVoices": "加载音色...",
+                    "msgLoadFailed": "加载失败",
+                    "msgNoDataToDownload": "太棒了！目前没有不认识的单词可以导出。",
+                    "quizPlayButtonText": "播放发音",
+                    "quizPrompt": "你认识这个单词吗？",
+                    "quizKnowBtnText": "我认识",
+                    "quizUnknownBtnText": "我不认识",
+                    "quizDetailsTitle": "单词详情",
+                    "quizNextWordBtnText": "下一个单词",
+                    "quizExportBtnText": "导出未掌握的单词",
+                    "word": "单词",
+                    "phonetic": "音标",
+                    "definition": "释义",
+                    "exampleSentenceTitle": "例句",
+                    "exampleTranslation": "例句翻译",
+                    "msgNoVoicesForLang": "此语言或引擎无可用音色",
+                    "msgAllWordsMastered": "🎉 恭喜你！所有单词都掌握了！",
+                    "msgSelectLanguage": "请选择语言",
+                    "msgSelectVoice": "请选择音色"
+                }
             },
-            'en-US': {
-                htmlTitle: 'Multilingual Smart Word Learning & Dictation Assistant',
-                appTitle: 'Multilingual Smart Word Learning & Dictation Assistant',
-                ttsSettingsTitle: 'Speech Synthesis Settings',
-                amazonTtsLabel: 'Amazon Polly (AI Voice, Backend Configured)',
-                selectVoiceLabel: 'Select Voice:',
-                useNeuralEngineLabel: 'Use Neural Engine (More Natural)',
-                loadFileBtnText: 'Load Excel Word List',
-                downloadFileBtnText: 'Download Word List',
-                downloadInfoText: '(Downloads example word list if no file is loaded)',
-                excelReminder: 'Please ensure the table is organized in the order of Word, Phonetic, Definition, Example Sentence, and Example Translation (five columns).',
-                exampleSentenceTitle: 'Example Sentence:',
-                readExampleBtnText: 'Read Example',
-                prevBtnText: 'Previous',
-                playBtnText: 'Play',
-                nextBtnText: 'Next',
-                autoPlayBtnText: 'Auto Play',
-                autoPlayWithExampleBtnText: 'Auto Play (with Example)',
-                intervalLabelText: 'Play Interval (seconds):',
-                creatorLabel: 'Created by:',
-                creatorNameContent: 'Xiaoman (Self-discipline Edition)',
-                contactLabel: 'Contact:',
-                customRequestText: 'Amazon Polly AI voice generation has limited free quota. Donations are welcome to maintain the long-term operation of this webpage. Kindly message or email to request my WeChat or provide payment QR code. Custom requests are also welcome via message or email. Thank you very much! ❤️',
-                pollyLangInfo: '', 
-                autoPlayWordOnlyActive: '<i class="fas fa-pause"></i> Auto Playing Word',
-                autoPlayWordAndExampleActive: '<i class="fas fa-pause"></i> Auto Playing Word & Example',
-                msgNoVoiceSelected: 'Please load and select an Amazon Polly voice first.',
-                msgLoadVoicesFailed: 'Failed to load voices: {error}. Check console for more details.',
-                msgApiError: 'Speech synthesis failed: {error}。', 
-                msgExcelReadFailed: 'Failed to read Excel file. Please ensure the file format is correct.',
-                msgNoWorksheet: 'No worksheet found in the Excel file.',
-                msgNoDataInSheet: 'No data found in the Excel file!',
-                msgExcelConvertFailed: 'Failed to convert Excel worksheet to data. Check data structure.',
-                msgFileReaderError: 'File reading failed. Please retry or check file permissions.',
-                msgPleaseLoadExcel: 'Please load an Excel word list first!',
-                msgBackendNoAudio: 'No Base64 audio data found in backend response.',
-                msgApiVoiceListFailed: 'Failed to fetch all voice list from API. Status: {status}. Error: {error}.',
-                msgApiVoiceListFormatError: 'Backend returned incorrect data format, missing "Voices" array.',
-                msgApiVoiceListParseError: 'Failed to parse backend JSON response. Error: {error}。',
-                msgLoadingLanguages: 'Loading Languages...',
-                msgLoadingVoices: 'Loading Voices...',
-                msgSelectLanguage: 'Select Language',
-                msgLoadFailed: 'Load Failed',
-                msgSelectVoice: 'Select Voice...',
-                msgNoVoicesForLang: 'No voices found for the current language',
-                msgNoDataToDownload: 'No word data available to download. Please load a word list first.',
-                msgNoDownloadSupport: 'Your browser does not support file downloads. Please try using an updated browser.',
-                msgMobilePlaybackBlocked: 'Your browser might be blocking automatic audio playback. Please try playing manually or tap the screen to allow playback.',
+            "pollyLanguageDisplayNames": {
+                "arb": "阿拉伯语",
+                "ar-AE": "阿拉伯语（海湾）",
+                "ca-ES": "加泰罗尼亚语",
+                "yue-CN": "中文（粤语）",
+                "cmn-CN": "中文（普通话）",
+                "cs-CZ": "捷克语",
+                "da-DK": "丹麦语",
+                "nl-BE": "荷兰语（比利时）",
+                "nl-NL": "荷兰语",
+                "en-AU": "英语（澳大利亚）",
+                "en-GB": "英语（英国）",
+                "en-IN": "英语（印度）",
+                "en-NZ": "英语（新西兰）",
+                "en-SG": "英语（新加坡）",
+                "en-ZA": "英语（南非）",
+                "en-US": "英语（美国）",
+                "en-GB-WLS": "英语（威尔士）",
+                "fi-FI": "芬兰语",
+                "fr-FR": "法语",
+                "fr-BE": "法语（比利时）",
+                "fr-CA": "法语（加拿大）",
+                "hi-IN": "印地语",
+                "de-DE": "德语",
+                "de-AT": "德语（奥地利）",
+                "de-CH": "德语（瑞士）",
+                "is-IS": "冰岛语",
+                "it-IT": "意大利语",
+                "ja-JP": "日语",
+                "ko-KR": "韩语",
+                "nb-NO": "挪威语",
+                "pl-PL": "波兰语",
+                "pt-BR": "葡萄牙语（巴西）",
+                "pt-PT": "葡萄牙语（葡萄牙）",
+                "ro-RO": "罗马尼亚语",
+                "ru-RU": "俄语",
+                "es-ES": "西班牙语（西班牙）",
+                "es-MX": "西班牙语（墨西哥）",
+                "es-US": "西班牙语（美国）",
+                "sv-SE": "瑞典语",
+                "tr-TR": "土耳其语",
+                "cy-GB": "威尔士语"
             }
         };
 
+        // --- API 配置 (请根据您的后端设置替换 URL) ---
+        const API_GATEWAY_URL = 'https://7c5n6j1469.execute-api.us-east-1.amazonaws.com/dev';
+        const LAMBDA_VOICES_URL = `${API_GATEWAY_URL}/voices`;
+        const LAMBDA_SYNTHESIZE_URL = `${API_GATEWAY_URL}/synthesize`;
+
+        // --- 测验模式状态 ---
+        let allWordsData = [];      // 从 Excel 加载的所有单词
+        let currentQuizList = [];    // 当前这一轮要测验的单词列表
+        let unknownWordsList = [];   // 在本轮测验中，标记为“不认识”的单词
+        let currentQuizWord = null;  // 当前正在测验的单词对象
+        let allPollyVoices = [];     // 可用音色列表
+        let isPlaying = false;       // 播放状态锁
+        
+        // 默认界面语言为中文
+        var currentUILanguage = 'zh-CN'; 
+        var t = ALL_APP_DATA.uiTranslations[currentUILanguage] || ALL_APP_DATA.uiTranslations['zh-CN'];
+        
+        // --- DOM 元素 ---
+        // 模式切换
+        const modeStudyBtn = document.getElementById('modeStudyBtn');
+        const modeQuizBtn = document.getElementById('modeQuizBtn');
+        const studyModeContent = document.getElementById('studyModeContent');
+        const quizModeContent = document.getElementById('quizModeContent');
+        
+        // 文件加载
+        const fileInput = document.getElementById('fileInput');
+        const loadFileBtn = document.getElementById('loadFileBtn');
+        
+        // 测验模式元素
+        const quizStats = document.getElementById('quizStats');
+        const quizPlayButton = document.getElementById('quizPlayButton');
+        const quizPlayExampleButton = document.getElementById('quizPlayExampleButton');
+        const quizPrompt = document.getElementById('quizPrompt');
+        const quizControls = document.getElementById('quizControls');
+        const quizKnowBtn = document.getElementById('quizKnowBtn');
+        const quizUnknownBtn = document.getElementById('quizUnknownBtn');
+        const quizDetailsPanel = document.getElementById('quizDetailsPanel');
+        const quizDetailsContent = document.getElementById('quizDetailsContent');
+        const quizNextWordBtn = document.getElementById('quizNextWordBtn');
+        const quizExportBtn = document.getElementById('quizExportBtn');
+        const initialPrompt = document.getElementById('initialPrompt');
+        
+        // 学习模式元素
+        const studyInitialPrompt = document.getElementById('studyInitialPrompt');
+        const studyWordDisplayArea = document.getElementById('studyWordDisplayArea');
+        const studyCurrentWord = document.getElementById('studyCurrentWord');
+        const studyCurrentPhonetic = document.getElementById('studyCurrentPhonetic');
+        const studyCurrentDefinition = document.getElementById('studyCurrentDefinition');
+        const studyExampleSentenceArea = document.getElementById('studyExampleSentenceArea');
+        const studyExampleSentence = document.getElementById('studyExampleSentence');
+        const studyExampleTranslation = document.getElementById('studyExampleTranslation');
+        const studyPlayExampleBtn = document.getElementById('studyPlayExampleBtn');
+        const studyProgressBar = document.getElementById('studyProgressBar');
+        const studyProgressText = document.getElementById('studyProgressText');
+        const studyPrevBtn = document.getElementById('studyPrevBtn');
+        const studyPlayBtn = document.getElementById('studyPlayBtn');
+        const studyNextBtn = document.getElementById('studyNextBtn');
+        const studyAutoPlayBtn = document.getElementById('studyAutoPlayBtn');
+        const studyAutoPlayWithExampleBtn = document.getElementById('studyAutoPlayWithExampleBtn');
+        const studyIntervalInput = document.getElementById('studyIntervalInput');
+        
+        // 共享元素
+        const audioPlayer = document.getElementById('audioPlayer');
+        const languageSelect = document.getElementById('languageSelect');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const awsLoading = document.getElementById('awsLoading');
+        
+        // 学习模式状态
+        let studyCurrentIndex = 0;
+        let studyAutoPlayTimeoutId = null;
+        let studyCurrentAutoPlayMode = 'none'; // 'none', 'wordOnly', 'wordWithExample'
+
+        // --- 辅助函数 ---
+
         /**
-         * Displays a custom message box (currently uses alert) with translated message.
-         * @param {string} key The key for the message in uiTranslations.
-         * @param {object} [replacements] Optional replacements for placeholders in the message.
+         * 具有指数退避的 fetch 重试机制
+         */
+        async function fetchWithRetry(url, options = {}, retries = 5) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        // 如果 HTTP 状态码不是 2xx，抛出错误
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i < retries - 1) {
+                        const delay = Math.pow(2, i) * 100; 
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        }
+
+        /**
+         * 显示消息框
          */
         function showMessageBox(key, replacements = {}) {
-            let message = uiTranslations[currentUILanguage][key] || key; // Fallback to key if translation not found
+            let message = t[key] || key;
             for (const placeholder in replacements) {
                 message = message.replace(`{${placeholder}}`, replacements[placeholder]);
             }
@@ -593,812 +507,828 @@
         }
 
         /**
-         * Updates the text and style of auto-play buttons.
+         * 数组乱序
          */
-        function updateAutoPlayButtonState() {
-            if (currentAutoPlayMode === 'wordOnly') {
-                autoPlayBtn.innerHTML = uiTranslations[currentUILanguage].autoPlayWordOnlyActive;
-                autoPlayBtn.classList.remove('btn-warning');
-                autoPlayBtn.classList.add('btn-danger'); // Red for active
-                autoPlayWithExampleBtn.innerHTML = `<i class="fas fa-sync"></i> ${uiTranslations[currentUILanguage].autoPlayWithExampleBtnText}`;
-                autoPlayWithExampleBtn.classList.remove('btn-danger');
-                autoPlayWithExampleBtn.classList.add('btn-warning');
-            } else if (currentAutoPlayMode === 'wordWithExample') {
-                autoPlayWithExampleBtn.innerHTML = uiTranslations[currentUILanguage].autoPlayWordAndExampleActive;
-                autoPlayWithExampleBtn.classList.remove('btn-warning');
-                autoPlayWithExampleBtn.classList.add('btn-danger'); // Red for active
-                autoPlayBtn.innerHTML = `<i class="fas fa-sync-alt"></i> ${uiTranslations[currentUILanguage].autoPlayBtnText}`;
-                autoPlayBtn.classList.remove('btn-danger');
-                autoPlayBtn.classList.add('btn-warning');
-            } else {
-                autoPlayBtn.innerHTML = `<i class="fas fa-sync-alt"></i> ${uiTranslations[currentUILanguage].autoPlayBtnText}`;
-                autoPlayBtn.classList.remove('btn-danger');
-                autoPlayBtn.classList.add('btn-warning');
-                autoPlayWithExampleBtn.innerHTML = `<i class="fas fa-sync"></i> ${uiTranslations[currentUILanguage].autoPlayWithExampleBtnText}`;
-                autoPlayWithExampleBtn.classList.remove('btn-danger');
-                autoPlayWithExampleBtn.classList.add('btn-warning');
+        function shuffleArray(array) {
+            let newArr = [...array];
+            for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
             }
+            return newArr;
         }
 
-        /**
-         * Disables or enables a set of control buttons/inputs.
-         * @param {boolean} disable - True to disable, false to enable.
-         */
-        function toggleControlButtons(disable) {
-            // Disable/enable general controls
-            loadFileBtn.disabled = disable;
-            downloadFileBtn.disabled = disable;
-            playBtn.disabled = disable;
-            prevBtn.disabled = disable;
-            nextBtn.disabled = disable;
-            playExampleBtn.disabled = disable;
-            intervalInput.disabled = disable;
-            languageSelect.disabled = disable;
-            voiceSelect.disabled = disable;
-            useNeuralEngineCheckbox.disabled = disable;
+        // --- 核心功能：Amazon Polly 播放 ---
+        
+        async function playAmazonPolly(text, onEndedCallback = null) {
+            if (!text || isPlaying) return Promise.resolve();
 
-            if (disable) { // An auto-play mode is starting
-                if (currentAutoPlayMode === 'wordOnly') {
-                    autoPlayBtn.disabled = false; // "Auto Play" is active, keep it enabled
-                    autoPlayWithExampleBtn.disabled = true; // Disable "Auto Play (with Example)"
-                } else if (currentAutoPlayMode === 'wordWithExample') {
-                    autoPlayBtn.disabled = true; // Disable "Auto Play"
-                    autoPlayWithExampleBtn.disabled = false; // "Auto Play (with Example)" is active, keep it enabled
+            const voiceId = voiceSelect.value;
+            const languageCode = languageSelect.value;
+
+            if (!voiceId) {
+                showMessageBox('msgNoVoiceSelected');
+                return Promise.resolve();
+            }
+            
+            // UI 状态：播放按钮禁用和加载中（仅测验模式）
+            const originalButtonContent = quizPlayButton ? quizPlayButton.innerHTML : '';
+            if (quizPlayButton) {
+                quizPlayButton.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 loading-spinner"></i>`;
+                quizPlayButton.disabled = true;
+            }
+            isPlaying = true;
+
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const response = await fetchWithRetry(LAMBDA_SYNTHESIZE_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text, voiceId, languageCode })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.audioBase64) {
+                        audioPlayer.src = `data:audio/mp3;base64,${data.audioBase64}`;
+                        audioPlayer.play();
+
+                        const onEnded = () => {
+                            // 播放结束或错误时清理状态
+                            if (quizPlayButton) {
+                                quizPlayButton.innerHTML = originalButtonContent;
+                                quizPlayButton.disabled = false;
+                                if (quizPlayExampleButton && currentQuizWord) {
+                                    quizPlayExampleButton.disabled = !currentQuizWord.example;
+                                }
+                            }
+                            isPlaying = false;
+                            if (onEndedCallback) {
+                                onEndedCallback();
+                            }
+                            audioPlayer.removeEventListener('ended', onEnded);
+                            audioPlayer.removeEventListener('error', onError);
+                            resolve();
+                        };
+                        
+                        const onError = (e) => {
+                            console.error("Audio playback error:", e);
+                            showMessageBox('msgApiError', { error: '音频播放失败，请检查音色和网络。' }); 
+                            if (quizPlayButton) {
+                                quizPlayButton.innerHTML = originalButtonContent;
+                                quizPlayButton.disabled = false;
+                            }
+                            isPlaying = false;
+                            audioPlayer.removeEventListener('ended', onEnded);
+                            audioPlayer.removeEventListener('error', onError);
+                            resolve(); // 即使出错也 resolve，不阻塞后续流程
+                        };
+
+                        audioPlayer.addEventListener('ended', onEnded, { once: true });
+                        audioPlayer.addEventListener('error', onError, { once: true });
+
+                    } else {
+                        throw new Error(t.msgBackendNoAudio);
+                    }
+
+                } catch (error) {
+                    console.error("Error synthesizing speech:", error);
+                    showMessageBox('msgApiError', { error: error.message });
+                    if (quizPlayButton) {
+                        quizPlayButton.innerHTML = originalButtonContent;
+                        quizPlayButton.disabled = false;
+                    }
+                    isPlaying = false;
+                    resolve(); // 即使出错也 resolve，不阻塞后续流程
                 }
-                awsLoading.style.display = 'inline-block';
-            } else { // Auto-play is stopping
-                autoPlayBtn.disabled = false; // Re-enable both auto-play buttons
-                autoPlayWithExampleBtn.disabled = false;
-                awsLoading.style.display = 'none';
+            });
+        }
+
+        // --- 核心功能：测验流程 ---
+
+        /**
+         * 启动新一轮测验
+         */
+        function startQuizRound() {
+            if (allWordsData.length === 0) {
+                 showMessageBox('msgNoDataInSheet');
+                 return;
             }
-        }
 
-
-        /**
-         * Stops all ongoing auto-play and speech synthesis.
-         */
-        function stopAutoPlay() {
-            if (autoPlayTimeoutId) {
-                clearTimeout(autoPlayTimeoutId);
-                autoPlayTimeoutId = null;
-            }
-            currentAutoPlayMode = 'none';
-            updateAutoPlayButtonState();
-            toggleControlButtons(false); // Enable all buttons when auto-play stops
-        }
-
-        /**
-         * Displays the current word and phonetic, and hides definition and example sentence.
-         */
-        function displayWordOnly() {
-            const currentWord = wordsData[currentIndex];
-            if (!currentWord) return;
-
-            currentWordElement.textContent = currentWord.word;
-            currentPhoneticElement.textContent = currentWord.phonetic;
-
-            // Hide definition and example
-            currentDefinitionElement.classList.add('hidden-content');
-            currentDefinitionElement.classList.remove('visible-content');
-            currentDefinitionElement.innerHTML = ''; // Clear content
-            exampleSentenceArea.classList.add('hidden-content');
-            exampleSentenceArea.classList.remove('visible-content');
-            exampleSentenceElement.innerHTML = ''; // Clear content
-            exampleTranslationElement.innerHTML = ''; // Clear content
-
-            // Show word display area (if previously hidden)
-            wordDisplayArea.style.display = 'block';
-        }
-
-        /**
-         * Displays the current word, phonetic, definition, and example sentence.
-         */
-        async function displayWordAndExample() {
-            const currentWord = wordsData[currentIndex];
-            if (!currentWord) return;
-
-            currentWordElement.textContent = currentWord.word;
-            currentPhoneticElement.textContent = currentWord.phonetic;
-
-            // Display definition (removed "释义:" prefix)
-            if (currentWord.definition) {
-                currentDefinitionElement.innerHTML = currentWord.definition; 
-                currentDefinitionElement.classList.remove('hidden-content');
-                currentDefinitionElement.classList.add('visible-content');
+            // 如果有未掌握的单词，优先复习它们
+            if (unknownWordsList.length > 0) {
+                currentQuizList = shuffleArray([...unknownWordsList]);
+                unknownWordsList = []; // 重置未掌握列表，让用户重新标记
+                console.log(`开始复习 ${currentQuizList.length} 个未掌握的单词。`);
             } else {
-                currentDefinitionElement.classList.add('hidden-content');
-                currentDefinitionElement.classList.remove('visible-content');
-                currentDefinitionElement.innerHTML = '';
+                // 否则，使用所有单词开始新一轮
+                currentQuizList = shuffleArray([...allWordsData]);
+                unknownWordsList = [];
+                console.log(`开始新一轮测验，总计 ${currentQuizList.length} 个单词。`);
             }
-
-            // Display example sentence
-            if (currentWord.example) {
-                exampleSentenceElement.textContent = currentWord.example;
-                exampleTranslationElement.textContent = currentWord.exampleTranslation;
-                exampleSentenceArea.classList.remove('hidden-content');
-                exampleSentenceArea.classList.add('visible-content');
-            } else {
-                exampleSentenceArea.classList.add('hidden-content');
-                exampleSentenceArea.classList.remove('visible-content');
-                exampleSentenceElement.innerHTML = '';
-                exampleTranslationElement.innerHTML = '';
-            }
-            wordDisplayArea.style.display = 'block';
+            
+            nextQuizWord();
+            initialPrompt.classList.add('hidden');
+            quizPrompt.classList.remove('hidden');
         }
 
         /**
-         * Updates the progress bar and text.
+         * 切换到下一个测验单词
          */
-        function updateProgress() {
-            if (wordsData.length === 0) {
-                progressBar.style.width = '0%';
-                progressText.textContent = '0/0';
+        function nextQuizWord() {
+            if (currentQuizList.length === 0) {
+                currentQuizWord = null;
+                updateQuizStats();
+                // 本轮结束
+                if (unknownWordsList.length > 0) {
+                    // 如果有新的未掌握单词，开始新的复习轮次
+                    startQuizRound(); 
+                } else {
+                    // 所有单词都掌握了
+                    quizPrompt.textContent = t.msgAllWordsMastered;
+                    quizPlayButton.classList.add('hidden');
+                    quizPlayExampleButton.classList.add('hidden');
+                    quizControls.classList.add('hidden');
+                    quizDetailsPanel.classList.add('hidden');
+                }
                 return;
             }
-            const progress = ((currentIndex + 1) / wordsData.length) * 100;
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `${currentIndex + 1}/${wordsData.length}`;
+
+            // 随机抽取一个单词
+            const randomIndex = Math.floor(Math.random() * currentQuizList.length);
+            currentQuizWord = currentQuizList.splice(randomIndex, 1)[0]; 
+            
+            resetQuizUI();
+            
+            // 自动播放第一次发音，并在结束后显示控制按钮
+            playAmazonPolly(currentQuizWord.word, () => {
+                quizControls.classList.remove('hidden');
+            });
         }
 
         /**
-         * Fetches all Polly voices from the backend and populates the language and voice selectors.
+         * 重置测验UI状态
+         */
+        function resetQuizUI() {
+            quizDetailsPanel.classList.add('hidden');
+            quizDetailsContent.innerHTML = '';
+            quizControls.classList.add('hidden'); 
+            
+            quizPlayButton.classList.remove('hidden');
+            quizPlayButton.disabled = false;
+            if (currentQuizWord && currentQuizWord.example) {
+                quizPlayExampleButton.classList.remove('hidden');
+                quizPlayExampleButton.disabled = false;
+            } else {
+                quizPlayExampleButton.classList.add('hidden');
+            }
+            quizKnowBtn.disabled = false;
+            quizUnknownBtn.disabled = false;
+            quizPrompt.textContent = t.quizPrompt;
+
+            // 恢复播放按钮的原始文本
+            quizPlayButton.innerHTML = `<i class="fas fa-play mr-2"></i> ${t.quizPlayButtonText}`;
+
+            updateQuizStats();
+            
+            // 重新绑定播放按钮的点击事件
+            quizPlayButton.onclick = () => {
+                playAmazonPolly(currentQuizWord.word, () => {
+                    quizControls.classList.remove('hidden');
+                });
+            };
+        }
+
+        /**
+         * 更新测验统计数据
+         */
+        function updateQuizStats() {
+            const totalWords = allWordsData.length;
+            const remainingInRound = currentQuizList.length + (currentQuizWord ? 1 : 0);
+            
+            quizStats.innerHTML = `
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium me-2 px-2.5 py-1 rounded-full">总计: ${totalWords}</span>
+                <span class="bg-yellow-100 text-yellow-800 text-sm font-medium me-2 px-2.5 py-1 rounded-full">剩余: ${remainingInRound}</span>
+                <span class="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-1 rounded-full">未掌握: ${unknownWordsList.length}</span>
+            `;
+        }
+
+        /**
+         * 显示单词详情
+         */
+        function showQuizDetails(isKnown) {
+            const word = currentQuizWord;
+            const statusMessage = isKnown ? 
+                '<span class="text-green-600 font-bold">✓ 回答正确！</span>' : 
+                '<span class="text-red-600 font-bold">✗ 需要复习！</span>';
+                
+            const detailsHtml = `
+                <p class="mb-3 text-lg">${statusMessage}</p>
+                <div class="space-y-2">
+                    <p><strong>${t.word}:</strong> <span class="text-xl font-bold text-blue-800">${word.word || 'N/A'}</span> (<span class="text-gray-500">${word.phonetic || 'N/A'}</span>)</p>
+                    <p><strong>${t.definition}:</strong> ${word.definition || 'N/A'}</p>
+                    <p><strong>${t.exampleSentenceTitle}:</strong> ${word.example || 'N/A'}</p>
+                    <p><strong>${t.exampleTranslation}:</strong> ${word.exampleTranslation || 'N/A'}</p>
+                </div>
+            `;
+            quizDetailsContent.innerHTML = detailsHtml;
+            quizDetailsPanel.classList.remove('hidden');
+
+            // 禁用当前操作按钮
+            quizKnowBtn.disabled = true;
+            quizUnknownBtn.disabled = true;
+            quizPlayButton.disabled = true; 
+            quizPrompt.classList.add('hidden');
+        }
+
+        function handleKnow() {
+            showQuizDetails(true);
+        }
+
+        function handleUnknown() {
+            unknownWordsList.push(currentQuizWord);
+            showQuizDetails(false);
+        }
+
+        // --- 文件和数据处理 ---
+
+        /**
+         * 从 Excel/CSV 文件加载单词数据
+         */
+        function loadDataFromExcel(file) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    
+                    if (!firstSheetName) {
+                        showMessageBox('msgNoWorksheet');
+                        return;
+                    }
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                    if (rows.length === 0) {
+                        showMessageBox('msgNoDataInSheet');
+                        return;
+                    }
+                    
+                    const nonEmptyRows = rows.filter(row =>
+                        row.some(cell => (cell !== undefined && cell !== null && `${cell}`.trim() !== ''))
+                    );
+
+                    if (nonEmptyRows.length === 0) {
+                        showMessageBox('msgNoDataInSheet');
+                        return;
+                    }
+
+                    const headerKeywords = ['word', '单词', 'phonetic', '音标', 'definition', '释义', 'example', '例句', 'exampletranslation', '例句翻译'];
+                    const firstRow = nonEmptyRows[0].map(cell => `${cell}`.trim().toLowerCase());
+                    const hasHeader = firstRow.some(cell => headerKeywords.includes(cell));
+                    const dataRows = hasHeader ? nonEmptyRows.slice(1) : nonEmptyRows;
+
+                    allWordsData = dataRows.map(row => {
+                        const [word = '', phonetic = '', definition = '', example = '', exampleTranslation = ''] = row;
+                        return {
+                            word: `${word}`.trim(),
+                            phonetic: `${phonetic}`.trim(),
+                            definition: `${definition}`.trim(),
+                            example: `${example}`.trim(),
+                            exampleTranslation: `${exampleTranslation}`.trim()
+                        };
+                    }).filter(item => item.word);
+                    
+                    if (allWordsData.length === 0) {
+                        showMessageBox('msgNoDataInSheet');
+                        return;
+                    }
+                    
+                    // 加载成功后，根据当前模式初始化
+                    if (currentMode === 'study') {
+                        studyCurrentIndex = 0;
+                        displayStudyWord();
+                    } else {
+                        quizPlayButton.disabled = false;
+                        startQuizRound();
+                    } 
+
+                } catch (error) {
+                    console.error(error);
+                    showMessageBox('msgExcelReadFailed');
+                }
+            };
+            
+            reader.onerror = () => {
+                showMessageBox('msgFileReaderError');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        /**
+         * 处理文件选择事件（input[type=file] 的 change 回调）
+         */
+        function handleFileSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+            loadDataFromExcel(file);
+        }
+
+        /**
+         * 导出未掌握的单词
+         */
+        function exportUnknownWords() {
+            if (unknownWordsList.length === 0) {
+                showMessageBox('msgNoDataToDownload');
+                return;
+            }
+
+            const headers = ["word", "phonetic", "definition", "example", "exampleTranslation"];
+            
+            const dataForSheet = unknownWordsList.map(word => {
+                let row = {};
+                headers.forEach(header => {
+                    row[header] = word[header] || ''; 
+                });
+                return row;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(dataForSheet, { 
+                header: headers,
+                // 重命名表头为中文
+                headerMap: {
+                    "word": "单词",
+                    "phonetic": "音标",
+                    "definition": "释义",
+                    "example": "例句",
+                    "exampleTranslation": "例句翻译"
+                }
+            });
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "未掌握的单词");
+            
+            XLSX.writeFile(wb, "my_unknown_words.xlsx");
+        }
+
+        // --- 一些旧版本中使用到的回调封装，保持事件绑定不报错 ---
+
+        /**
+         * 播放当前单词发音（供播放按钮绑定使用）
+         */
+        function playCurrentWordPronunciation() {
+            if (!currentQuizWord) {
+                return;
+            }
+            playAmazonPolly(currentQuizWord.word, () => {
+                quizControls.classList.remove('hidden');
+            });
+        }
+
+        // 新增播放例句函数
+        function playCurrentExamplePronunciation() {
+            if (!currentQuizWord || !currentQuizWord.example) return;
+            playAmazonPolly(currentQuizWord.example, () => {
+                quizControls.classList.remove('hidden');
+            });
+        }
+
+        /**
+         * 根据是否认识单词处理答题结果
+         */
+        function handleWordKnowledge(isKnown) {
+            if (isKnown) {
+                handleKnow();
+            } else {
+                handleUnknown();
+            }
+        }
+
+        /**
+         * 切换到下一个测验单词（供“下一个单词”按钮绑定使用）
+         */
+        function startNextQuizWord() {
+            nextQuizWord();
+        }
+
+        // --- 语音设置逻辑 ---
+
+        /**
+         * 从后端 API 加载 Polly 语言和音色，逻辑与 player.html 保持一致。
          */
         async function loadAllPollyLanguagesAndVoices() {
-            languageSelect.innerHTML = `<option value="">${uiTranslations[currentUILanguage].msgLoadingLanguages}</option>`;
-            voiceSelect.innerHTML = `<option value="">${uiTranslations[currentUILanguage].msgLoadingVoices}</option>`;
-            awsLoading.style.display = 'inline-block'; // Show spinner during voice loading
+            const loadingLanguages = t.msgLoadingLanguages || '加载语言...';
+            const loadingVoices = t.msgLoadingVoices || '加载音色...';
+
+            languageSelect.innerHTML = `<option value="">${loadingLanguages}</option>`;
+            voiceSelect.innerHTML = `<option value="">${loadingVoices}</option>`;
+            if (awsLoading) {
+                awsLoading.classList.remove('hidden');
+            }
 
             try {
                 const response = await fetch(LAMBDA_VOICES_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}), 
+                    body: JSON.stringify({}),
                 });
-
-                console.log('--- Debugging loadAllPollyLanguagesAndVoices ---');
-                console.log('API Request URL:', LAMBDA_VOICES_URL);
-                console.log('HTTP Response Status Code:', response.status);
-                console.log('HTTP Response OK:', response.ok);
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API Response Not OK:', errorText);
-                    throw new Error(uiTranslations[currentUILanguage].msgApiVoiceListFailed
-                        .replace('{status}', response.status)
-                        .replace('{error}', errorText));
+                    const messageTemplate = t.msgApiVoiceListFailed || '无法加载音色列表，状态: {status}，错误: {error}';
+                    throw new Error(
+                        messageTemplate
+                            .replace('{status}', response.status)
+                            .replace('{error}', errorText || '未知错误')
+                    );
                 }
 
                 const data = await response.json();
                 if (!data || !Array.isArray(data.Voices)) {
-                    console.error('Backend returned incorrect data format or missing "Voices" array:', data);
-                    throw new Error(uiTranslations[currentUILanguage].msgApiVoiceListFormatError);
+                    throw new Error(t.msgApiVoiceListFormatError || '后端返回的数据格式不正确，缺少音色列表。');
                 }
 
-                allPollyVoices = data.Voices; 
-
-                populatePollyLanguageSelector(); 
-
-                const uniqueLanguageCodes = [...new Set(allPollyVoices.map(voice => voice.LanguageCode))];
-                if (uniqueLanguageCodes.includes('en-US')) {
-                    languageSelect.value = 'en-US';
-                } else if (uniqueLanguageCodes.length > 0) {
-                    languageSelect.value = uniqueLanguageCodes[0];
-                }
-
-                loadVoiceOptionsForSelectedLanguage();
-
+                allPollyVoices = data.Voices;
+                populatePollyLanguageSelector();
             } catch (error) {
                 console.error('Failed to load all Polly languages and voices:', error);
-                languageSelect.innerHTML = `<option value="">${uiTranslations[currentUILanguage].msgLoadFailed}</option>`;
-                voiceSelect.innerHTML = `<option value="">${uiTranslations[currentUILanguage].msgLoadFailed}</option`;
+                const loadFailedText = t.msgLoadFailed || '加载失败';
+                languageSelect.innerHTML = `<option value="">${loadFailedText}</option>`;
+                voiceSelect.innerHTML = `<option value="">${loadFailedText}</option>`;
                 showMessageBox('msgLoadVoicesFailed', { error: error.message });
             } finally {
-                awsLoading.style.display = 'none'; // Hide spinner after voice loading
-                console.log('--- End Debugging loadAllPollyLanguagesAndVoices ---');
+                if (awsLoading) {
+                    awsLoading.classList.add('hidden');
+                }
             }
         }
 
-        /**
-         * Populates the language selector with Polly-supported languages.
-         */
+        // --- 模式切换功能 ---
+        
+        let currentMode = 'study'; // 'study' 或 'quiz'
+        
+        function switchMode(mode) {
+            // 停止学习模式的自动播放
+            if (currentMode === 'study') {
+                stopStudyAutoPlay();
+            }
+            
+            currentMode = mode;
+            
+            if (mode === 'study') {
+                modeStudyBtn.classList.add('active');
+                modeStudyBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+                modeStudyBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                modeQuizBtn.classList.remove('active');
+                modeQuizBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                modeQuizBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
+                studyModeContent.classList.remove('hidden');
+                quizModeContent.classList.add('hidden');
+                quizExportBtn.parentElement.classList.add('hidden');
+                quizStats.classList.add('hidden');
+            } else {
+                modeStudyBtn.classList.remove('active');
+                modeStudyBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                modeStudyBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
+                modeQuizBtn.classList.add('active');
+                modeQuizBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+                modeQuizBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                studyModeContent.classList.add('hidden');
+                quizModeContent.classList.remove('hidden');
+                quizExportBtn.parentElement.classList.remove('hidden');
+                quizStats.classList.remove('hidden');
+            }
+            
+            // 如果已加载数据，更新显示
+            if (allWordsData.length > 0) {
+                if (mode === 'study') {
+                    displayStudyWord();
+                } else {
+                    // 切换到测试模式时，如果还没有开始测验，则初始化测验
+                    if (currentQuizList.length === 0 && unknownWordsList.length === 0) {
+                        quizPlayButton.disabled = false;
+                        startQuizRound();
+                    } else {
+                        // 如果已经在测验中，更新统计信息
+                        updateQuizStats();
+                    }
+                }
+            }
+        }
+        
+        // --- 学习模式功能 ---
+        
+        function displayStudyWord() {
+            if (allWordsData.length === 0) {
+                studyWordDisplayArea.style.display = 'none';
+                studyInitialPrompt.classList.remove('hidden');
+                return;
+            }
+            
+            const word = allWordsData[studyCurrentIndex];
+            if (!word) return;
+            
+            studyInitialPrompt.classList.add('hidden');
+            studyWordDisplayArea.style.display = 'block';
+            
+            studyCurrentWord.textContent = word.word || '';
+            studyCurrentPhonetic.textContent = word.phonetic || '';
+            
+            // 显示释义
+            if (word.definition) {
+                studyCurrentDefinition.textContent = word.definition;
+                studyCurrentDefinition.classList.remove('hidden-content');
+                studyCurrentDefinition.classList.add('visible-content');
+            } else {
+                studyCurrentDefinition.classList.add('hidden-content');
+                studyCurrentDefinition.classList.remove('visible-content');
+            }
+            
+            // 显示例句
+            if (word.example) {
+                studyExampleSentence.textContent = word.example;
+                studyExampleTranslation.textContent = word.exampleTranslation || '';
+                studyExampleSentenceArea.classList.remove('hidden-content');
+                studyExampleSentenceArea.classList.add('visible-content');
+                studyPlayExampleBtn.disabled = false;
+            } else {
+                studyExampleSentenceArea.classList.add('hidden-content');
+                studyExampleSentenceArea.classList.remove('visible-content');
+                studyPlayExampleBtn.disabled = true;
+            }
+            
+            updateStudyProgress();
+            updateStudyButtons();
+        }
+        
+        function updateStudyProgress() {
+            if (allWordsData.length === 0) {
+                studyProgressBar.style.width = '0%';
+                studyProgressText.textContent = '0/0';
+                return;
+            }
+            const progress = ((studyCurrentIndex + 1) / allWordsData.length) * 100;
+            studyProgressBar.style.width = `${progress}%`;
+            studyProgressText.textContent = `${studyCurrentIndex + 1}/${allWordsData.length}`;
+        }
+        
+        function updateStudyButtons() {
+            studyPrevBtn.disabled = studyCurrentIndex === 0;
+            studyNextBtn.disabled = studyCurrentIndex >= allWordsData.length - 1;
+            studyPlayBtn.disabled = allWordsData.length === 0;
+            studyAutoPlayBtn.disabled = allWordsData.length === 0;
+            studyAutoPlayWithExampleBtn.disabled = allWordsData.length === 0;
+        }
+        
+        async function playStudyWord() {
+            if (allWordsData.length === 0) return;
+            const word = allWordsData[studyCurrentIndex];
+            if (!word || !word.word) return;
+            
+            // 先只显示单词和音标
+            studyCurrentDefinition.classList.add('hidden-content');
+            studyExampleSentenceArea.classList.add('hidden-content');
+            
+            // 播放单词
+            await playAmazonPolly(word.word);
+            
+            // 播放后显示释义和例句
+            if (word.definition) {
+                studyCurrentDefinition.classList.remove('hidden-content');
+                studyCurrentDefinition.classList.add('visible-content');
+            }
+            if (word.example) {
+                studyExampleSentenceArea.classList.remove('hidden-content');
+                studyExampleSentenceArea.classList.add('visible-content');
+            }
+        }
+        
+        async function playStudyWordWithExample() {
+            if (allWordsData.length === 0) return;
+            const word = allWordsData[studyCurrentIndex];
+            if (!word || !word.word) return;
+            
+            // 先只显示单词和音标
+            studyCurrentDefinition.classList.add('hidden-content');
+            studyExampleSentenceArea.classList.add('hidden-content');
+            
+            // 播放单词
+            await playAmazonPolly(word.word);
+            
+            // 显示释义
+            if (word.definition) {
+                studyCurrentDefinition.classList.remove('hidden-content');
+                studyCurrentDefinition.classList.add('visible-content');
+            }
+            
+            // 播放例句
+            if (word.example) {
+                studyExampleSentenceArea.classList.remove('hidden-content');
+                studyExampleSentenceArea.classList.add('visible-content');
+                await playAmazonPolly(word.example);
+            }
+        }
+        
+        function stopStudyAutoPlay() {
+            if (studyAutoPlayTimeoutId) {
+                clearTimeout(studyAutoPlayTimeoutId);
+                studyAutoPlayTimeoutId = null;
+            }
+            studyCurrentAutoPlayMode = 'none';
+            updateStudyAutoPlayButtons();
+        }
+        
+        function updateStudyAutoPlayButtons() {
+            if (studyCurrentAutoPlayMode === 'wordOnly') {
+                studyAutoPlayBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                studyAutoPlayBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                studyAutoPlayBtn.innerHTML = '<i class="fas fa-pause mr-2"></i> 停止自动播放';
+            } else if (studyCurrentAutoPlayMode === 'wordWithExample') {
+                studyAutoPlayWithExampleBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                studyAutoPlayWithExampleBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                studyAutoPlayWithExampleBtn.innerHTML = '<i class="fas fa-pause mr-2"></i> 停止自动播放';
+            } else {
+                studyAutoPlayBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                studyAutoPlayBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                studyAutoPlayBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> 自动播放';
+                studyAutoPlayWithExampleBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                studyAutoPlayWithExampleBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                studyAutoPlayWithExampleBtn.innerHTML = '<i class="fas fa-sync mr-2"></i> 自动播放（带例句）';
+            }
+        }
+        
+        async function startStudyAutoPlay(mode) {
+            stopStudyAutoPlay();
+            studyCurrentAutoPlayMode = mode;
+            updateStudyAutoPlayButtons();
+            
+            const playNext = async () => {
+                if (studyCurrentAutoPlayMode === 'none') return;
+                
+                if (mode === 'wordOnly') {
+                    await playStudyWord();
+                } else {
+                    await playStudyWordWithExample();
+                }
+                
+                // 移动到下一个
+                if (studyCurrentIndex < allWordsData.length - 1) {
+                    studyCurrentIndex++;
+                    displayStudyWord();
+                } else {
+                    // 循环到开头
+                    studyCurrentIndex = 0;
+                    displayStudyWord();
+                }
+                
+                if (studyCurrentAutoPlayMode !== 'none') {
+                    const interval = parseInt(studyIntervalInput.value) || 2;
+                    studyAutoPlayTimeoutId = setTimeout(playNext, interval * 1000);
+                }
+            };
+            
+            await playNext();
+        }
+        
+        // --- 绑定事件和初始化 ---
+
+        function initializeApp() {
+            // 模式切换事件
+            modeStudyBtn.addEventListener('click', () => switchMode('study'));
+            modeQuizBtn.addEventListener('click', () => switchMode('quiz'));
+            
+            // 文件加载事件
+            languageSelect.addEventListener('change', loadVoiceOptionsForSelectedLanguage);
+            loadFileBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // 测验模式事件
+            quizPlayButton.addEventListener('click', playCurrentWordPronunciation);
+            quizPlayExampleButton.addEventListener('click', playCurrentExamplePronunciation);
+            quizKnowBtn.addEventListener('click', () => handleWordKnowledge(true));
+            quizUnknownBtn.addEventListener('click', () => handleWordKnowledge(false));
+            quizNextWordBtn.addEventListener('click', startNextQuizWord);
+            quizExportBtn.addEventListener('click', exportUnknownWords);
+            
+            // 学习模式事件
+            studyPrevBtn.addEventListener('click', () => {
+                if (studyCurrentIndex > 0) {
+                    stopStudyAutoPlay();
+                    studyCurrentIndex--;
+                    displayStudyWord();
+                }
+            });
+            studyNextBtn.addEventListener('click', () => {
+                if (studyCurrentIndex < allWordsData.length - 1) {
+                    stopStudyAutoPlay();
+                    studyCurrentIndex++;
+                    displayStudyWord();
+                }
+            });
+            studyPlayBtn.addEventListener('click', playStudyWord);
+            studyPlayExampleBtn.addEventListener('click', async () => {
+                const word = allWordsData[studyCurrentIndex];
+                if (word && word.example) {
+                    await playAmazonPolly(word.example);
+                }
+            });
+            studyAutoPlayBtn.addEventListener('click', () => {
+                if (studyCurrentAutoPlayMode === 'wordOnly') {
+                    stopStudyAutoPlay();
+                } else {
+                    startStudyAutoPlay('wordOnly');
+                }
+            });
+            studyAutoPlayWithExampleBtn.addEventListener('click', () => {
+                if (studyCurrentAutoPlayMode === 'wordWithExample') {
+                    stopStudyAutoPlay();
+                } else {
+                    startStudyAutoPlay('wordWithExample');
+                }
+            });
+
+            // 加载 Polly 语言和音色
+            loadAllPollyLanguagesAndVoices();
+            
+            // 默认显示学习模式
+            switchMode('study');
+        }
+
+        // 填充语言选择器并设置默认语言为英语（en-US）以及该语言下的第一个音色
         function populatePollyLanguageSelector() {
-            const uniqueLanguageCodes = [...new Set(allPollyVoices.map(voice => voice.LanguageCode))];
-            uniqueLanguageCodes.sort(); 
-
-            languageSelect.innerHTML = ''; 
-
+            const uniqueLanguageCodes = [...new Set(allPollyVoices.map(voice => voice.LanguageCode))].sort();
+            languageSelect.innerHTML = '';
+            
             const defaultOption = document.createElement('option');
             defaultOption.value = '';
-            defaultOption.textContent = uiTranslations[currentUILanguage].msgSelectLanguage;
+            defaultOption.textContent = t.msgSelectLanguage || '选择语言';
             languageSelect.appendChild(defaultOption);
-
-            // Populate languageSelect
+            
             uniqueLanguageCodes.forEach(langCode => {
                 const option = document.createElement('option');
                 option.value = langCode;
-                // Use pollyLanguageDisplayNames for translation, or raw code if not found
-                option.textContent = pollyLanguageDisplayNames[langCode] || langCode; 
+                option.textContent = ALL_APP_DATA.pollyLanguageDisplayNames[langCode] || langCode;
                 languageSelect.appendChild(option);
             });
+
+            const defaultLang = 'en-US';
+            const langOption = Array.from(languageSelect.options).find(option => option.value === defaultLang);
+            if (langOption) {
+                languageSelect.value = defaultLang;
+            } else if (uniqueLanguageCodes.length > 0) {
+                languageSelect.value = uniqueLanguageCodes[0];
+            }
+
+            loadVoiceOptionsForSelectedLanguage();
         }
-
-        /**
-         * Populates the voice selector based on the currently selected language.
-         */
+    
+        // 根据选中语言加载音色选项
         function loadVoiceOptionsForSelectedLanguage() {
-            const lang = languageSelect.value;
-            voiceSelect.innerHTML = `<option value="">${uiTranslations[currentUILanguage].msgSelectVoice}</option>`;
-            useNeuralEngineCheckbox.disabled = true;
-            useNeuralEngineCheckbox.checked = false;
-
-            if (!lang || allPollyVoices.length === 0) {
+            const selectedLang = languageSelect.value;
+            voiceSelect.innerHTML = '';
+    
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = t.msgSelectVoice || '选择音色...';
+            voiceSelect.appendChild(defaultOption);
+    
+            if (!selectedLang || !allPollyVoices.length) {
                 return;
             }
-
-            const langVoices = allPollyVoices.filter(voice => 
-                voice.LanguageCode === lang
-            );
-
-            if (langVoices.length === 0) {
-                voiceSelect.innerHTML = `<option value="">${uiTranslations[currentUILanguage].msgNoVoicesForLang}</option>`;
-                console.warn(`No Amazon Polly voices found for the current language (${lang}).`);
+    
+            const filteredVoices = allPollyVoices
+                .filter(voice => voice && voice.LanguageCode === selectedLang)
+                .sort((a, b) => (a.Name || '').localeCompare(b.Name || ''));
+    
+            if (filteredVoices.length === 0) {
+                const noVoiceOption = document.createElement('option');
+                noVoiceOption.value = '';
+                noVoiceOption.textContent = t.msgNoVoicesForLang || '此语言或引擎无可用音色';
+                voiceSelect.appendChild(noVoiceOption);
                 return;
             }
-
-            langVoices.sort((a, b) => {
-                if (a.Engine === 'neural' && b.Engine !== 'neural') return -1;
-                if (a.Engine !== 'neural' && b.Engine === 'neural') return 1;
-                return a.Name.localeCompare(b.Name);
-            });
-
-            langVoices.forEach(voice => {
+    
+            filteredVoices.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice.Id;
-                const engineLabel = voice.SupportedEngines.includes('neural') ? 
-                                    (currentUILanguage === 'zh-CN' ? '神经' : 'Neural') : 
-                                    (currentUILanguage === 'zh-CN' ? '标准' : 'Standard');
-                option.textContent = `${voice.Name} (${voice.Gender}) - ${engineLabel}`;
-                option.dataset.supportedEngines = JSON.stringify(voice.SupportedEngines);
+                const displayName = ALL_APP_DATA.pollyLanguageDisplayNames[voice.LanguageCode] || voice.LanguageCode;
+                const engineLabel = (voice.SupportedEngines && voice.SupportedEngines.includes('neural')) ? 'Neural' : 'Standard';
+                option.textContent = `${voice.Name} (${voice.Gender}, ${displayName}, ${engineLabel})`;
                 voiceSelect.appendChild(option);
             });
 
-            if (langVoices.length > 0) {
-                voiceSelect.value = langVoices[0].Id;
-                updateNeuralEngineCheckbox(); 
+            if (filteredVoices.length > 0) {
+                voiceSelect.value = filteredVoices[0].Id;
             }
         }
 
-        function updateNeuralEngineCheckbox() {
-            const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
-            
-            if (selectedOption && selectedOption.dataset.supportedEngines) {
-                const supportedEngines = JSON.parse(selectedOption.dataset.supportedEngines);
-                const supportsNeural = supportedEngines.includes('neural');
-                
-                useNeuralEngineCheckbox.disabled = !supportsNeural;
-                useNeuralEngineCheckbox.checked = supportsNeural; 
-            } else {
-                useNeuralEngineCheckbox.disabled = true;
-                useNeuralEngineCheckbox.checked = false;
-            }
-        }
-
-        /**
-         * Plays text using Amazon Polly TTS.
-         * @param {string} text The text to synthesize.
-         * @param {string} lang The language code for the text.
-         * @param {string} [textType='text'] The text type ('text' or 'ssml').
-         * @returns {Promise<void>} A promise that resolves when audio playback ends.
-         */
-        async function playText(text, lang, textType = 'text') {
-            const correctedLang = lang.replace(/_/g, '-');
-            
-            const voiceId = voiceSelect.value;
-            if (!voiceId) {
-                showMessageBox('msgNoVoiceSelected');
-                return Promise.reject('No voice selected');
-            }
-
-            // awsLoading.style.display = 'inline-block'; // Handled by toggleControlButtons
-
-            const selectedEngine = useNeuralEngineCheckbox.checked ? 'neural' : 'standard';
-
-            try {
-                const response = await fetch(LAMBDA_SYNTHESIZE_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        text: text,
-                        voiceId: voiceId,
-                        engine: selectedEngine,
-                        languageCode: correctedLang, // Passed to Lambda for voice info
-                        textType: textType // Pass textType to Lambda
-                    }),
-                });
-
-                console.log('--- Debugging playText function (Amazon service) ---');
-                console.log('API Request URL:', LAMBDA_SYNTHESIZE_URL);
-                console.log('Request Body:', {text, voiceId, engine: selectedEngine, languageCode: correctedLang, textType});
-                console.log('Received HTTP Status:', response.status);
-                console.log('Received HTTP Status Text:', response.statusText);
-                console.log('Received Content-Type:', response.headers.get('Content-Type'));
-
-                if (!response.ok) {
-                    let errorData;
-                    const contentType = response.headers.get('Content-Type');
-                    if (contentType && contentType.includes('application/json')) {
-                        errorData = await response.json();
-                    } else {
-                        errorData = { message: await response.text() }; // Read as text if not JSON
-                    }
-                    throw new Error(errorData.message || `API request failed with status ${response.status}`);
-                }
-
-                let audioBase64;
-                const contentType = response.headers.get('Content-Type');
-
-                // FIX: Handle both raw Base64 and JSON with audioBase64 property
-                if (contentType && contentType.includes('audio/mpeg')) {
-                    // If Lambda returns raw Base64 audio directly (as observed from error)
-                    audioBase64 = await response.text(); // Read as raw text
-                    console.log('Received raw audio/mpeg Base64 string for playback.');
-                } else if (contentType && contentType.includes('application/json')) {
-                    // If Lambda returns JSON with audioBase64 property (preferred)
-                    const responseJson = await response.json();
-                    audioBase64 = responseJson.audioBase64;
-                    console.log('Received JSON with audioBase64 property for playback.');
-                    if (!audioBase64) {
-                        throw new Error('msgBackendNoAudio');
-                    }
-                } else {
-                    throw new Error(`Unexpected Content-Type for playback: ${contentType}`);
-                }
-                
-                const byteCharacters = atob(audioBase64);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                const audioBlob = new Blob([byteArray], { type: 'audio/mpeg' });
-
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                
-                return new Promise((resolve) => {
-                    audio.onended = () => {
-                        URL.revokeObjectURL(audioUrl);
-                        resolve();
-                    };
-                    audio.onerror = (e) => {
-                        console.error('Audio playback failed:', e.target.error);
-                        // Check if it's a mobile autoplay prevention error
-                        if (e.target.error.name === 'NotAllowedError' || e.target.error.name === 'AbortError') {
-                            showMessageBox('msgMobilePlaybackBlocked');
-                        } else {
-                            showMessageBox('msgApiError', { error: 'Audio playback failed' });
-                        }
-                        URL.revokeObjectURL(audioUrl);
-                        resolve(); 
-                    };
-                    audio.play().catch((playError) => {
-                        console.error('Audio playback prevented or failed:', playError);
-                        // Check if it's a mobile autoplay prevention error
-                        if (playError.name === 'NotAllowedError' || playError.name === 'AbortError') {
-                             showMessageBox('msgMobilePlaybackBlocked');
-                        } else {
-                            showMessageBox('msgApiError', { error: 'Audio playback prevented or failed' });
-                        }
-                        URL.revokeObjectURL(audioUrl);
-                        resolve(); 
-                    });
-                });
-
-            } catch (error) {
-                console.error('Backend API call failed:', error);
-                showMessageBox('msgApiError', { error: error.message });
-                return Promise.reject(error); 
-            } finally {
-                // awsLoading.style.display = 'none'; // Handled by toggleControlButtons in stopAutoPlay
-            }
-        }
-
-        /**
-         * Plays the current word's pronunciation.
-         * Logic: Display only word/phonetic, play word, then display definition/example.
-         */
-        async function playCurrentWord() {
-            if (wordsData.length === 0) return;
-            const word = wordsData[currentIndex].word;
-            const lang = languageSelect.value;
-            
-            displayWordOnly(); 
-            await playText(word, lang); 
-            await displayWordAndExample(); 
-        }
-
-        /**
-         * Converts wordsData or exampleWordsData to CSV format and triggers a download.
-         */
-        function downloadWordList() {
-            let dataToDownload = wordsData.length > 0 ? wordsData : exampleWordsData;
-            let fileName = wordsData.length > 0 ? 'my_word_list.csv' : 'example_word_list.csv';
-
-            if (dataToDownload.length === 0) {
-                showMessageBox('msgNoDataToDownload');
-                return;
-            }
-
-            const headers = ['Word', 'Phonetic', 'Definition', 'Example', 'ExampleTranslation'];
-            let csvContent = headers.map(header => `"${header}"`).join(',') + '\n';
-
-            dataToDownload.forEach(row => {
-                const rowArray = [
-                    row.word,
-                    row.phonetic,
-                    row.definition,
-                    row.example,
-                    row.exampleTranslation
-                ];
-                // Escape double quotes and enclose fields in double quotes
-                csvContent += rowArray.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
-            });
-
-            // Prepend UTF-8 BOM to resolve garbled characters in Excel
-            csvContent = '\uFEFF' + csvContent;
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            if (link.download !== undefined) { // Feature detection for download attribute
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', fileName);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            } else {
-                // Fallback for browsers that don't support download attribute
-                showMessageBox('msgNoDownloadSupport'); 
-            }
-        }
-
-        /**
-         * Updates all static UI text based on the currentUILanguage.
-         */
-        function updateUILanguageText() {
-            const translations = uiTranslations[currentUILanguage];
-            console.log('Updating UI for language:', currentUILanguage);
-
-            htmlTitle.textContent = translations.htmlTitle;
-            document.getElementById('appTitle').innerHTML = `<i class="fas fa-language"></i>${translations.appTitle}`;
-
-            // TTS Settings section
-            document.getElementById('ttsSettingsTitle').innerHTML = `<i class="fas fa-cog"></i> ${translations.ttsSettingsTitle}`;
-            document.getElementById('amazonTtsLabel').textContent = translations.amazonTtsLabel;
-            document.getElementById('selectVoiceLabel').textContent = translations.selectVoiceLabel;
-            document.getElementById('useNeuralEngineLabel').textContent = translations.useNeuralEngineLabel;
-
-            // File loading
-            document.getElementById('loadFileBtnText').textContent = translations.loadFileBtnText;
-            document.getElementById('downloadFileBtnText').textContent = translations.downloadFileBtnText; // Update download button text
-            const excelReminderTextElement = document.getElementById('excelReminderText');
-            if (excelReminderTextElement) { 
-                excelReminderTextElement.textContent = translations.excelReminder; 
-            } else {
-                console.warn('excelReminderText element not found!');
-            }
-            // Update download info text
-            if (downloadInfoText) {
-                downloadInfoText.textContent = translations.downloadInfoText;
-            } else {
-                console.warn('downloadInfoText element not found!');
-            }
-
-            // Example Sentence section (title only)
-            document.getElementById('exampleSentenceTitle').innerHTML = `<h6><i class="fas fa-comment-dots"></i> ${translations.exampleSentenceTitle}</h6>`;
-            document.getElementById('readExampleBtnText').textContent = translations.readExampleBtnText;
-
-            // Controls
-            document.getElementById('prevBtnText').textContent = translations.prevBtnText;
-            document.getElementById('playBtnText').textContent = translations.playBtnText;
-            document.getElementById('nextBtnText').textContent = translations.nextBtnText;
-            document.getElementById('autoPlayBtnText').textContent = translations.autoPlayBtnText;
-            document.getElementById('autoPlayWithExampleBtnText').textContent = translations.autoPlayWithExampleBtnText;
-            
-            // Updated intervalLabelText - Get it here
-            const intervalLabelTextElement = document.getElementById('intervalLabelText');
-            if (intervalLabelTextElement) {
-                intervalLabelTextElement.textContent = translations.intervalLabelText;
-            } else {
-                console.warn('intervalLabelText element not found during updateUILanguageText!');
-            }
-
-            // Creator Info - Get elements here
-            const creatorLabelElement = document.getElementById('creatorLabel');
-            if (creatorLabelElement) {
-                creatorLabelElement.textContent = translations.creatorLabel;
-            } else {
-                console.warn('creatorLabel element not found during updateUILanguageText!');
-            }
-            const creatorNameContentElement = document.getElementById('creatorNameContent');
-            if (creatorNameContentElement) {
-                creatorNameContentElement.textContent = translations.creatorNameContent;
-            } else {
-                console.warn('creatorNameContent element not found during updateUILanguageText!');
-            }
-            
-            const contactLabelElement = document.getElementById('contactLabel');
-            if (contactLabelElement) {
-                contactLabelElement.textContent = translations.contactLabel;
-            } else {
-                console.warn('contactLabel element not found during updateUILanguageText!');
-            }
-
-            const customRequestTextElement = document.getElementById('customRequestText');
-            if (customRequestTextElement) { 
-                customRequestTextElement.innerHTML = translations.customRequestText;
-                console.log('customRequestText element innerHTML after update:', customRequestTextElement.innerHTML); 
-            } else {
-                console.warn('customRequestText element not found!');
-            }
-
-            // Update auto play button states (their text might change based on active/inactive)
-            updateAutoPlayButtonState();
-
-            // Re-populate Polly spoken language options to use updated UI language for display names
-            const currentPollyLang = languageSelect.value;
-            populatePollyLanguageSelector(); 
-            languageSelect.value = currentPollyLang || ''; 
-            // After populating the selector, ensure the correct voice options are loaded for the selected language
-            loadVoiceOptionsForSelectedLanguage(); 
-        }
-
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Determine initial UI language based on browser preference
-            const browserLang = navigator.language || navigator.userLanguage;
-            if (browserLang.startsWith('en')) {
-                currentUILanguage = 'en-US';
-                uiLanguageSelect.value = 'en-US';
-            } else {
-                currentUILanguage = 'zh-CN';
-                uiLanguageSelect.value = 'zh-CN';
-            }
-            updateUILanguageText(); 
-
-            amazonConfigDiv.style.display = 'block';
-            selectVoiceLabel.style.display = 'inline-block';
-            voiceSelect.style.display = 'inline-block';
-
-            // Initial load of Polly languages and voices - this will now happen automatically
-            loadAllPollyLanguagesAndVoices();
-            
-            // ADDED: Event listener for the Polly spoken language selector
-            languageSelect.addEventListener('change', function() {
-                console.log('Polly Spoken Language changed to:', this.value);
-                loadVoiceOptionsForSelectedLanguage();
-            });
-
-            // Voice selection dropdown change (Polly voice)
-            voiceSelect.addEventListener('change', updateNeuralEngineCheckbox);
-
-            // Excel file loading logic remains the same
-            fileInput.addEventListener('change', function(e) {
-                console.log('--- 开始加载 Excel 文件 ---');
-                const file = e.target.files[0];
-                if (!file) {
-                    console.log('未选择文件或取消选择。');
-                    return;
-                }
-                console.log('已选择文件:', file.name, '类型:', file.type, '大小:', file.size, '字节');
-
-                fileLoading.classList.remove('d-none'); // Show spinner for file loading
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    console.log('FileReader: 文件读取成功。');
-                    const data = new Uint8Array(e.target.result);
-                    let workbook;
-                    try {
-                        workbook = XLSX.read(data, { type: 'array' });
-                        console.log('XLSX: 工作簿读取成功。工作表名称:', workbook.SheetNames);
-                    } catch (error) {
-                        console.error('XLSX: 读取工作簿失败:', error);
-                        showMessageBox('msgExcelReadFailed');
-                        fileLoading.classList.add('d-none'); // Hide spinner on error
-                        return;
-                    }
-                    
-                    const firstSheetName = workbook.SheetNames[0];
-                    if (!firstSheetName) {
-                        console.error('XLSX: 工作簿中没有找到任何工作表名称。');
-                        showMessageBox('msgNoWorksheet');
-                        fileLoading.classList.add('d-none'); // Hide spinner on error
-                        return;
-                    }
-                    console.log('XLSX: 第一张工作表名称:', firstSheetName);
-
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    if (!worksheet) {
-                         console.error('XLSX: 无法获取第一张工作表。');
-                         showMessageBox('msgNoWorksheet'); 
-                         fileLoading.classList.add('d-none'); // Hide spinner on error
-                         return;
-                    }
-                    console.log('XLSX: 获取工作表成功。工作表范围:', worksheet['!ref']);
-
-                    let jsonData;
-                    try {
-                        jsonData = XLSX.utils.sheet_to_json(worksheet);
-                        console.log('XLSX: 成功将工作表转换为 JSON。数据条目数:', jsonData.length);
-                        console.log('XLSX: 转换后的 JSON 数据示例 (前5条):', JSON.stringify(jsonData.slice(0, 5), null, 2));
-                    } catch (error) {
-                        console.error('XLSX: 将工作表转换为 JSON 失败:', error);
-                        showMessageBox('msgExcelConvertFailed');
-                        fileLoading.classList.add('d-none'); // Hide spinner on error
-                        return;
-                    }
-                    
-                    if (jsonData.length > 0) {
-                        wordsData = jsonData.map(row => {
-                            const keys = Object.keys(row);
-                            console.log('Processing raw row data:', row);
-                            console.log('Inferred key order:', keys);
-                            return {
-                                word: row[keys[0]] || '',
-                                phonetic: row[keys[1]] || '',
-                                definition: row[keys[2]] || '',
-                                example: row[keys[3]] || '',
-                                exampleTranslation: row[keys[4]] || ''
-                            };
-                        });
-                        console.log('Successfully processed wordsData. Total entries:', wordsData.length);
-                        console.log('Processed wordsData example (first 5 entries):', JSON.stringify(wordsData.slice(0, 5), null, 2));
-                        
-                        wordDisplayArea.style.display = 'block';
-                        currentIndex = 0;
-                        displayWordOnly();
-                        updateProgress();
-                    } else {
-                        console.warn('No data found in the Excel file! jsonData is empty.');
-                        showMessageBox('msgNoDataInSheet');
-                    }
-                    fileLoading.classList.add('d-none'); // Hide spinner on success
-                };
-                reader.onerror = function(e) {
-                    console.error('FileReader: File reading error:', e);
-                    showMessageBox('msgFileReaderError');
-                    fileLoading.classList.add('d-none'); // Hide spinner on error
-                };
-                reader.readAsArrayBuffer(file);
-            });
-            
-            loadFileBtn.addEventListener('click', function() {
-                if (loadFileBtn.disabled) return; // Prevent action if disabled
-                fileInput.click();
-            });
-
-            // Add event listener for the new download button
-            downloadFileBtn.addEventListener('click', function() {
-                if (downloadFileBtn.disabled) return; // Prevent action if disabled
-                downloadWordList();
-            });
-
-            playExampleBtn.addEventListener('click', function() {
-                if (playExampleBtn.disabled) return; // Prevent action if disabled
-                // This button will be disabled by toggleControlButtons(true) when auto-play is active
-                const currentWord = wordsData[currentIndex];
-                if (!currentWord || !currentWord.example) return;
-                
-                const lang = languageSelect.value;
-                playText(currentWord.example, lang);
-            });
-
-            playBtn.addEventListener('click', function() {
-                if (playBtn.disabled) return; // Prevent action if disabled
-                // This button will be disabled by toggleControlButtons(true) when auto-play is active
-                if (wordsData.length === 0) { showMessageBox('msgPleaseLoadExcel'); return; }
-                playCurrentWord();
-            });
-
-            prevBtn.addEventListener('click', function() {
-                if (prevBtn.disabled) return; // Prevent action if disabled
-                // This button will be disabled by toggleControlButtons(true) when auto-play is active
-                if (wordsData.length === 0) { showMessageBox('msgPleaseLoadExcel'); return; }
-                
-                currentIndex = (currentIndex - 1 + wordsData.length) % wordsData.length;
-                displayWordOnly();
-                playCurrentWord();
-                updateProgress();
-            });
-
-            nextBtn.addEventListener('click', function() {
-                if (nextBtn.disabled) return; // Prevent action if disabled
-                // This button will be disabled by toggleControlButtons(true) when auto-play is active
-                if (wordsData.length === 0) { showMessageBox('msgPleaseLoadExcel'); return; }
-                
-                currentIndex = (currentIndex + 1) % wordsData.length;
-                displayWordOnly();
-                playCurrentWord();
-                updateProgress();
-            });
-
-            autoPlayBtn.addEventListener('click', function() {
-                if (wordsData.length === 0) {
-                    showMessageBox('msgPleaseLoadExcel');
-                    return;
-                }
-                
-                if (currentAutoPlayMode === 'wordOnly') {
-                    stopAutoPlay(); // Stop auto-play if it's already running in this mode
-                } else {
-                    stopAutoPlay(); // Stop any other active auto-play mode (this will re-enable all buttons)
-                    currentAutoPlayMode = 'wordOnly';
-                    updateAutoPlayButtonState();
-                    toggleControlButtons(true); // Disable other buttons, and the *other* auto-play button
-                    startAutoPlay();
-                }
-            });
-
-            autoPlayWithExampleBtn.addEventListener('click', function() {
-                if (wordsData.length === 0) {
-                    showMessageBox('msgPleaseLoadExcel');
-                    return;
-                }
-                
-                if (currentAutoPlayMode === 'wordWithExample') {
-                    stopAutoPlay(); // Stop auto-play if it's already running in this mode
-                } else {
-                    stopAutoPlay(); // Stop any other active auto-play mode (this will re-enable all buttons)
-                    currentAutoPlayMode = 'wordWithExample';
-                    updateAutoPlayButtonState();
-                    toggleControlButtons(true); // Disable other buttons, and the *other* auto-play button
-                    startAutoPlay();
-                }
-            });
-
-            async function startAutoPlay() {
-                if (wordsData.length === 0 || currentAutoPlayMode === 'none') {
-                    stopAutoPlay();
-                    return;
-                }
-
-                const intervalTime = parseFloat(intervalInput.value) * 1000;
-                
-                await playCurrentWord();
-                
-                if (currentAutoPlayMode === 'wordWithExample') {
-                    const currentWord = wordsData[currentIndex];
-                    if (currentWord && currentWord.example) {
-                        await playText(currentWord.example, languageSelect.value);
-                    }
-                }
-
-                autoPlayTimeoutId = setTimeout(async () => {
-                    currentIndex = (currentIndex + 1) % wordsData.length;
-                    updateProgress();
-                    if (wordsData.length > 0) {
-                        startAutoPlay();
-                    } else {
-                        stopAutoPlay();
-                    }
-                }, intervalTime + (currentAutoPlayMode === 'wordWithExample' ? 1000 : 0)); 
-            }
-            
-            uiLanguageSelect.addEventListener('change', function() {
-                console.log('UI Language changed to:', this.value); 
-                currentUILanguage = this.value;
-                updateUILanguageText();
-                const currentPollyLang = languageSelect.value;
-                populatePollyLanguageSelector(); 
-                languageSelect.value = currentPollyLang || ''; 
-                loadVoiceOptionsForSelectedLanguage(); 
-            });
-        });
+        // DOM 加载完成后运行初始化
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
